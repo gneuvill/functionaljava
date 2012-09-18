@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.sonatype.oss</groupId>
+    <artifactId>oss-parent</artifactId>
+    <version>1</version>
+  </parent>
+  <groupId>org.functionaljava</groupId>
+  <artifactId>functionaljava-parent</artifactId>
+  <packaging>pom</packaging>
+  <name>Functional Java</name>
+  <description>Functional Java is an open source library that aims to prepare the Java programming language for the
+    inclusion of closures.
+  </description>
+  <version>3.2-SNAPSHOT</version>
+  <url>http://functionaljava.org/</url>
+  <licenses>
+    <license>
+      <name>The BSD3 License</name>
+      <url>https://github.com/functionaljava/functionaljava/blob/master/etc/LICENCE</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <scm>
+    <url>git://github.com/functionaljava/functionaljava.git</url>
+  </scm>
+  <developers>
+    <developer>
+      <email>functionaljava@googlegroups.com</email>
+    </developer>
+  </developers>
+  <organization>
+    <name>Functional Java</name>
+    <url>http://functionaljava.org/</url>
+  </organization>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>2.3.2</version>
+        <configuration>
+          <source>1.8</source>
+          <target>1.8</target>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+  <modules>
+    <module>core</module>
+    <module>demo</module>
+  </modules>
+
+</project>

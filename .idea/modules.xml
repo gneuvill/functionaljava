@@ -4,6 +4,8 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/functionaljava.iml" filepath="$PROJECT_DIR$/functionaljava.iml" />
       <module fileurl="file://$PROJECT_DIR$/core/functionaljava (1).iml" filepath="$PROJECT_DIR$/core/functionaljava (1).iml" />
+      <module fileurl="file://$PROJECT_DIR$/core/functionaljava (1).iml" filepath="$PROJECT_DIR$/core/functionaljava (1).iml" />
+      <module fileurl="file://$PROJECT_DIR$/demo/functionaljava-demo.iml" filepath="$PROJECT_DIR$/demo/functionaljava-demo.iml" />
       <module fileurl="file://$PROJECT_DIR$/demo/functionaljava-demo.iml" filepath="$PROJECT_DIR$/demo/functionaljava-demo.iml" />
     </modules>
   </component>

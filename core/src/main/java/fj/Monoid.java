@@ -99,11 +99,7 @@ public final class Monoid<A> {
    * @return The sum of the given values.
    */
   public A sumRight(final Stream<A> as) {
-    return as.foldRight(new F2<A, P1<A>, A>() {
-      public A f(final A a, final P1<A> ap1) {
-        return sum(a, ap1._1());
-      }
-    }, zero);
+    return as.foldRight((a, ap1) -> sum(a, ap1._1()), zero);
   }
 
   /**
@@ -132,11 +128,7 @@ public final class Monoid<A> {
    * @return a function that sums the given values with left-fold.
    */
   public F<List<A>, A> sumLeft() {
-    return new F<List<A>, A>() {
-      public A f(final List<A> as) {
-        return sumLeft(as);
-      }
-    };
+    return as -> sumLeft(as);
   }
 
   /**
@@ -145,11 +137,7 @@ public final class Monoid<A> {
    * @return a function that sums the given values with right-fold.
    */
   public F<List<A>, A> sumRight() {
-    return new F<List<A>, A>() {
-      public A f(final List<A> as) {
-        return sumRight(as);
-      }
-    };
+    return as -> sumRight(as);
   }
 
   /**
@@ -158,11 +146,7 @@ public final class Monoid<A> {
    * @return a function that sums the given values with left-fold.
    */
   public F<Stream<A>, A> sumLeftS() {
-    return new F<Stream<A>, A>() {
-      public A f(final Stream<A> as) {
-        return sumLeft(as);
-      }
-    };
+    return as -> sumLeft(as);
   }
 
   /**
@@ -188,7 +172,7 @@ public final class Monoid<A> {
    * @return A monoid instance that uses the given sun function and zero value.
    */
   public static <A> Monoid<A> monoid(final F<A, F<A, A>> sum, final A zero) {
-    return new Monoid<A>(sum, zero);
+    return new Monoid<>(sum, zero);
   }
 
   /**
@@ -200,7 +184,7 @@ public final class Monoid<A> {
    * @return A monoid instance that uses the given sun function and zero value.
    */
   public static <A> Monoid<A> monoid(final F2<A, A, A> sum, final A zero) {
-    return new Monoid<A>(curry(sum), zero);
+    return new Monoid<>(curry(sum), zero);
   }
 
   /**
@@ -211,7 +195,7 @@ public final class Monoid<A> {
    * @return A monoid instance that uses the given sun function and zero value.
    */
   public static <A> Monoid<A> monoid(final Semigroup<A> s, final A zero) {
-    return new Monoid<A>(s.sum(), zero);
+    return new Monoid<>(s.sum(), zero);
   }
 
   /**

@@ -78,7 +78,7 @@ public final class Array<A> implements Iterable<A> {
   }
 
   public ImmutableProjection<A> immutable() {
-    return new ImmutableProjection<A>(this);
+    return new ImmutableProjection<>(this);
   }
 
   /**
@@ -164,12 +164,8 @@ public final class Array<A> implements Iterable<A> {
    */
   @SuppressWarnings("unchecked")
   public Stream<A> toStream() {
-    return Stream.unfold(new F<Integer, Option<P2<A, Integer>>>() {
-      public Option<P2<A, Integer>> f(final Integer o) {
-        return a.length > o ? some(p((A) a[o], o + 1))
-            : Option.<P2<A, Integer>>none();
-      }
-    }, 0);
+    return Stream.unfold(o -> a.length > o ? some(p((A) a[o], o + 1))
+        : Option.<P2<A, Integer>>none(), 0);
   }
 
   /**
@@ -186,7 +182,7 @@ public final class Array<A> implements Iterable<A> {
       bs[i] = f.f((A) a[i]);
     }
 
-    return new Array<B>(bs);
+    return new Array<>(bs);
   }
 
   /**
@@ -320,7 +316,7 @@ public final class Array<A> implements Iterable<A> {
       }
     });
 
-    return new Array<B>(bs);
+    return new Array<>(bs);
   }
 
   /**
@@ -365,15 +361,7 @@ public final class Array<A> implements Iterable<A> {
    * @return A new array after applying the given array of functions through this array.
    */
   public <B> Array<B> apply(final Array<F<A, B>> lf) {
-    return lf.bind(new F<F<A, B>, Array<B>>() {
-      public Array<B> f(final F<A, B> f) {
-        return map(new F<A, B>() {
-          public B f(final A a) {
-            return f.f(a);
-          }
-        });
-      }
-    });
+    return lf.bind(f -> map((F<A, B>) a -> f.f(a)));
   }
 
   /**
@@ -388,7 +376,7 @@ public final class Array<A> implements Iterable<A> {
       x[a.length - 1 - i] = a[i];
     }
 
-    return new Array<A>(x);
+    return new Array<>(x);
   }
 
   /**
@@ -403,7 +391,7 @@ public final class Array<A> implements Iterable<A> {
     arraycopy(a, 0, x, 0, a.length);
     arraycopy(aas.a, 0, x, a.length, aas.a.length);
 
-    return new Array<A>(x);
+    return new Array<>(x);
   }
 
   /**
@@ -412,7 +400,7 @@ public final class Array<A> implements Iterable<A> {
    * @return An empty array.
    */
   public static <A> Array<A> empty() {
-    return new Array<A>(new Object[0]);
+    return new Array<>(new Object[0]);
   }
 
   /**
@@ -422,7 +410,7 @@ public final class Array<A> implements Iterable<A> {
    * @return A new array of the given elements.
    */
   public static <A> Array<A> array(final A... a) {
-    return new Array<A>(a);
+    return new Array<>(a);
   }
 
   /**
@@ -432,7 +420,7 @@ public final class Array<A> implements Iterable<A> {
    * @return A wrapped array.
    */
   static <A> Array<A> mkArray(final Object[] a) {
-    return new Array<A>(a);
+    return new Array<>(a);
   }
 
   /**
@@ -442,7 +430,7 @@ public final class Array<A> implements Iterable<A> {
    * @return An array with the given single element.
    */
   public static <A> Array<A> single(final A a) {
-    return new Array<A>(new Object[]{a});
+    return new Array<>(new Object[]{a});
   }
 
   /**
@@ -451,11 +439,7 @@ public final class Array<A> implements Iterable<A> {
    * @return A function that wraps a given array.
    */
   public static <A> F<A[], Array<A>> wrap() {
-    return new F<A[], Array<A>>() {
-      public Array<A> f(final A[] as) {
-        return array(as);
-      }
-    };
+    return as -> array(as);
   }
 
   /**
@@ -464,11 +448,7 @@ public final class Array<A> implements Iterable<A> {
    * @return A function that maps a given function across a given array.
    */
   public static <A, B> F<F<A, B>, F<Array<A>, Array<B>>> map() {
-    return curry(new F2<F<A, B>, Array<A>, Array<B>>() {
-      public Array<B> f(final F<A, B> abf, final Array<A> array) {
-        return array.map(abf);
-      }
-    });
+    return curry((final F<A, B> abf, final Array<A> array) -> array.map(abf));
   }
 
   /**
@@ -488,11 +468,7 @@ public final class Array<A> implements Iterable<A> {
    * @return A function that joins a array of arrays using a bind operation.
    */
   public static <A> F<Array<Array<A>>, Array<A>> join() {
-    return new F<Array<Array<A>>, Array<A>>() {
-      public Array<A> f(final Array<Array<A>> as) {
-        return join(as);
-      }
-    };
+    return as -> join(as);
   }
 
   /**
@@ -559,7 +535,7 @@ public final class Array<A> implements Iterable<A> {
     if (from >= to)
       return empty();
     else {
-      final Array<Integer> a = new Array<Integer>(new Integer[to - from]);
+      final Array<Integer> a = new Array<>(new Integer[to - from]);
 
       for (int i = from; i < to; i++)
         a.set(i - from, i);
@@ -579,7 +555,7 @@ public final class Array<A> implements Iterable<A> {
    */
   public <B, C> Array<C> zipWith(final Array<B> bs, final F<A, F<B, C>> f) {
     final int len = min(a.length, bs.length());
-    final Array<C> x = new Array<C>(new Object[len]);
+    final Array<C> x = new Array<>(new Object[len]);
 
     for (int i = 0; i < len; i++) {
       x.set(i, f.f(get(i)).f(bs.get(i)));
@@ -619,13 +595,9 @@ public final class Array<A> implements Iterable<A> {
    * @return A new array with the same length as this array.
    */
   public Array<P2<A, Integer>> zipIndex() {
-    return zipWith(range(0, length()), new F<A, F<Integer, P2<A, Integer>>>() {
-      public F<Integer, P2<A, Integer>> f(final A a) {
-        return new F<Integer, P2<A, Integer>>() {
-          public P2<A, Integer> f(final Integer i) {
-            return p(a, i);
-          }
-        };
+    return zipWith(range(0, length()), a -> new F<Integer, P2<A, Integer>>() {
+      public P2<A, Integer> f(final Integer i) {
+        return p(a, i);
       }
     });
   }
@@ -687,8 +659,8 @@ public final class Array<A> implements Iterable<A> {
   @SuppressWarnings({"unchecked"})
   public static <A, B> P2<Array<A>, Array<B>> unzip(final Array<P2<A, B>> xs) {
     final int len = xs.length();
-    final Array<A> aa = new Array<A>(new Object[len]);
-    final Array<B> ab = new Array<B>(new Object[len]);
+    final Array<A> aa = new Array<>(new Object[len]);
+    final Array<B> ab = new Array<>(new Object[len]);
     for (int i = len - 1; i >= 0; i--) {
       final P2<A, B> p = xs.get(i);
       aa.set(i, p._1());

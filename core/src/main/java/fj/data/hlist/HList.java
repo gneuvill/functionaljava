@@ -47,7 +47,7 @@ public abstract class HList<A extends HList<A>> {
    * @return a heterogeneous list consisting of an element and another list.
    */
   public static <E, L extends HList<L>> HCons<E, L> cons(final E e, final L l) {
-    return new HCons<E, L>(e, l);
+    return new HCons<>(e, l);
   }
 
   /**
@@ -91,11 +91,7 @@ public abstract class HList<A extends HList<A>> {
      * @return a method for concatenating lists to the empty list.
      */
     public static <L extends HList<L>> HAppend<HNil, L, L> append() {
-      return new HAppend<HNil, L, L>(new F2<HNil, L, L>() {
-        public L f(final HNil hNil, final L l) {
-          return l;
-        }
-      });
+      return new HAppend<>((hNil, l) -> l);
     }
 
     /**
@@ -106,11 +102,7 @@ public abstract class HList<A extends HList<A>> {
      */
     public static <X, A extends HList<A>, B, C extends HList<C>, H extends HAppend<A, B, C>>
     HAppend<HCons<X, A>, B, HCons<X, C>> append(final H h) {
-      return new HAppend<HCons<X, A>, B, HCons<X, C>>(new F2<HCons<X, A>, B, HCons<X, C>>() {
-        public HCons<X, C> f(final HCons<X, A> c, final B l) {
-          return cons(c.head(), h.append(c.tail(), l));
-        }
-      });
+      return new HAppend<>((c, l) -> cons(c.head(), h.append(c.tail(), l)));
     }
   }
 
@@ -220,7 +212,7 @@ public abstract class HList<A extends HList<A>> {
      * @return a fold instance for the empty list.
      */
     public static <G, V> HFoldr<G, V, HNil, V> hFoldr() {
-      return new HFoldr<G, V, HNil, V>(new F3<G, V, HNil, V>() {
+      return new HFoldr<>(new F3<G, V, HNil, V>() {
         public V f(final G f, final V v, final HNil hNil) {
           return v;
         }
@@ -246,7 +238,7 @@ public abstract class HList<A extends HList<A>> {
         H extends HFoldr<G, V, L, R>,
         PP extends Apply<G, P2<E, R>, RR>>
     HFoldr<G, V, HCons<E, L>, RR> hFoldr(final PP p, final H h) {
-      return new HFoldr<G, V, HCons<E, L>, RR>(new F3<G, V, HCons<E, L>, RR>() {
+      return new HFoldr<>(new F3<G, V, HCons<E, L>, RR>() {
         public RR f(final G f, final V v, final HCons<E, L> c) {
           return p.apply(f, P.p(c.head(), h.foldRight(f, v, c.tail())));
         }

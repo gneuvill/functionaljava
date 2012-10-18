@@ -120,7 +120,7 @@ public abstract class FingerTree<V, A> {
    * @return A builder of trees and tree components that annotates them using the given Measured instance.
    */
   public static <V, A> MakeTree<V, A> mkTree(final Measured<V, A> m) {
-    return new MakeTree<V, A>(m);
+    return new MakeTree<>(m);
   }
 
   /**

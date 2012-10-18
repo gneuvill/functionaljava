@@ -96,7 +96,7 @@ public final class Validation<E, T> implements Iterable<T> {
    * @return a failing projection of this validation.
    */
   public FailProjection<E, T> f() {
-    return new FailProjection<E, T>(this);
+    return new FailProjection<>(this);
   }
 
   /**
@@ -230,11 +230,7 @@ public final class Validation<E, T> implements Iterable<T> {
    * @return The result of function application in validation.
    */
   public <A> Validation<E, A> apply(final Validation<E, F<T, A>> v) {
-    return v.bind(new F<F<T, A>, Validation<E, A>>() {
-      public Validation<E, A> f(final F<T, A> f) {
-        return map(f);
-      }
-    });
+    return v.bind((final F<T, A> f) -> map(f));
   }
 
   /**
@@ -354,11 +350,7 @@ public final class Validation<E, T> implements Iterable<T> {
    *         <code>None</code>.
    */
   public <A> Option<E> accumulate(final Semigroup<E> s, final Validation<E, A> va) {
-    return accumulate(s, va, new F2<T, A, Unit>() {
-      public Unit f(final T t, final A a) {
-        return unit();
-      }
-    }).f().toOption();
+    return accumulate(s, va, (t, a) -> unit()).f().toOption();
   }
 
   /**
@@ -855,11 +847,7 @@ public final class Validation<E, T> implements Iterable<T> {
      * @return A new validation value after the final join.
      */
     public <A> Validation<A, T> sequence(final Validation<A, T> v) {
-      return bind(new F<E, Validation<A, T>>() {
-        public Validation<A, T> f(final E e) {
-          return v;
-        }
-      });
+      return bind(e -> v);
     }
 
     /**
@@ -881,11 +869,7 @@ public final class Validation<E, T> implements Iterable<T> {
      * @return The result of function application in validation.
      */
     public <A> Validation<A, T> apply(final Validation<F<E, A>, T> v) {
-      return v.f().bind(new F<F<E, A>, Validation<A, T>>() {
-        public Validation<A, T> f(final F<E, A> f) {
-          return map(f);
-        }
-      });
+      return v.f().bind((final F<E, A> f) -> map(f));
     }
 
     /**
@@ -977,7 +961,7 @@ public final class Validation<E, T> implements Iterable<T> {
    * @return A validation using the given either value.
    */
   public static <E, T> Validation<E, T> validation(final Either<E, T> e) {
-    return new Validation<E, T>(e);
+    return new Validation<>(e);
   }
 
   /**
@@ -986,11 +970,7 @@ public final class Validation<E, T> implements Iterable<T> {
    * @return A function that constructs a validation with an either.
    */
   public static <E, T> F<Either<E, T>, Validation<E, T>> validation() {
-    return new F<Either<E, T>, Validation<E, T>>() {
-      public Validation<E, T> f(final Either<E, T> e) {
-        return validation(e);
-      }
-    };
+    return e -> validation(e);
   }
 
   /**
@@ -999,11 +979,7 @@ public final class Validation<E, T> implements Iterable<T> {
    * @return A function that constructs an either with a validation.
    */
   public static <E, T> F<Validation<E, T>, Either<E, T>> either() {
-    return new F<Validation<E, T>, Either<E, T>>() {
-      public Either<E, T> f(final Validation<E, T> v) {
-        return v.toEither();
-      }
-    };
+    return v -> v.toEither();
   }
 
   /**
@@ -1066,11 +1042,7 @@ public final class Validation<E, T> implements Iterable<T> {
   /**
    * A function that parses a string into a byte.
    */
-  public static final F<String, Validation<NumberFormatException, Byte>> parseByte = new F<String, Validation<NumberFormatException, Byte>>() {
-    public Validation<NumberFormatException, Byte> f(final String s) {
-      return parseByte(s);
-    }
-  };
+  public static final F<String, Validation<NumberFormatException, Byte>> parseByte = s -> parseByte(s);
 
   /**
    * Parses the given string into a double.
@@ -1089,11 +1061,7 @@ public final class Validation<E, T> implements Iterable<T> {
   /**
    * A function that parses a string into a double.
    */
-  public static final F<String, Validation<NumberFormatException, Double>> parseDouble = new F<String, Validation<NumberFormatException, Double>>() {
-    public Validation<NumberFormatException, Double> f(final String s) {
-      return parseDouble(s);
-    }
-  };
+  public static final F<String, Validation<NumberFormatException, Double>> parseDouble = s -> parseDouble(s);
 
   /**
    * Parses the given string into a float.
@@ -1112,11 +1080,7 @@ public final class Validation<E, T> implements Iterable<T> {
   /**
    * A function that parses a string into a float.
    */
-  public static final F<String, Validation<NumberFormatException, Float>> parseFloat = new F<String, Validation<NumberFormatException, Float>>() {
-    public Validation<NumberFormatException, Float> f(final String s) {
-      return parseFloat(s);
-    }
-  };
+  public static final F<String, Validation<NumberFormatException, Float>> parseFloat = s -> parseFloat(s);
 
   /**
    * Parses the given string into a integer.
@@ -1135,11 +1099,7 @@ public final class Validation<E, T> implements Iterable<T> {
   /**
    * A function that parses a string into an integer.
    */
-  public static final F<String, Validation<NumberFormatException, Integer>> parseInt = new F<String, Validation<NumberFormatException, Integer>>() {
-    public Validation<NumberFormatException, Integer> f(final String s) {
-      return parseInt(s);
-    }
-  };
+  public static final F<String, Validation<NumberFormatException, Integer>> parseInt = s -> parseInt(s);
 
   /**
    * Parses the given string into a long.
@@ -1158,11 +1118,7 @@ public final class Validation<E, T> implements Iterable<T> {
   /**
    * A function that parses a string into a long.
    */
-  public static final F<String, Validation<NumberFormatException, Long>> parseLong = new F<String, Validation<NumberFormatException, Long>>() {
-    public Validation<NumberFormatException, Long> f(final String s) {
-      return parseLong(s);
-    }
-  };
+  public static final F<String, Validation<NumberFormatException, Long>> parseLong = s -> parseLong(s);
 
   /**
    * Parses the given string into a short.
@@ -1181,9 +1137,5 @@ public final class Validation<E, T> implements Iterable<T> {
   /**
    * A function that parses a string into a short. 
    */
-  public static final F<String, Validation<NumberFormatException, Short>> parseShort = new F<String, Validation<NumberFormatException, Short>>() {
-    public Validation<NumberFormatException, Short> f(final String s) {
-      return parseShort(s);
-    }
-  };
+  public static final F<String, Validation<NumberFormatException, Short>> parseShort = s -> parseShort(s);
 }

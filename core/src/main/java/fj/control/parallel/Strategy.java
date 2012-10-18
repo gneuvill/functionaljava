@@ -6,13 +6,10 @@ import fj.F2;
 import fj.Function;
 import fj.P;
 import fj.P1;
-import static fj.Function.compose;
-import static fj.Function.curry;
-import static fj.P1.fmap;
-import static fj.P1.sequence;
+import fj.Product1;
+import fj.data.Array;
 import fj.data.Java;
 import fj.data.List;
-import fj.data.Array;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
@@ -20,6 +17,11 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
+
+import static fj.Function.compose;
+import static fj.Function.curry;
+import static fj.Product1.fmap;
+import static fj.Product1.sequence;
 
 /**
  * Functional-style parallel evaluation strategies.
@@ -53,7 +55,7 @@ public final class Strategy<A> {
    * @return A strategy that uses the given function to evaluate product-1s.
    */
   public static <A> Strategy<A> strategy(final F<P1<A>, P1<A>> f) {
-    return new Strategy<A>(f);
+    return new Strategy<>(f);
   }
 
   /**
@@ -73,7 +75,7 @@ public final class Strategy<A> {
    * @return A function that executes concurrently when called, yielding a Future value.
    */
   public <B> F<B, P1<A>> concurry(final F<B, A> f) {
-    return compose(f(), P1.<B, A>curry(f));
+    return compose(f(), Product1.<B, A>curry(f));
   }
 
   /**
@@ -83,11 +85,7 @@ public final class Strategy<A> {
    * @return A function that executes concurrently when called, yielding a product-1 that returns the value.
    */
   public <B, C> F<B, F<C, P1<A>>> concurry(final F2<B, C, A> f) {
-    return new F<B, F<C, P1<A>>>() {
-      public F<C, P1<A>> f(final B b) {
-        return concurry(curry(f).f(b));
-      }
-    };
+    return b -> concurry(curry(f).f(b));
   }
 
   /**
@@ -142,7 +140,7 @@ public final class Strategy<A> {
    * @return A list with all of its elements transformed by the given function.
    */
   public <B> List<A> parMap1(final F<B, A> f, final List<B> bs) {
-    return compose(P1.<List<A>>__1(), parMapList(f)).f(bs);
+    return compose(Product1.<List<A>>__1(), parMapList(f)).f(bs);
   }
 
   /**
@@ -155,7 +153,7 @@ public final class Strategy<A> {
    * @return An array with all of its elements transformed by the given function.
    */
   public <B> Array<A> parMap1(final F<B, A> f, final Array<B> bs) {
-    return compose(P1.<Array<A>>__1(), parMapArray(f)).f(bs);
+    return compose(Product1.<Array<A>>__1(), parMapArray(f)).f(bs);
   }
 
   /**
@@ -165,11 +163,7 @@ public final class Strategy<A> {
    * @return The function transformed into a parallel function on lists.
    */
   public <B> F<List<B>, P1<List<A>>> parMapList(final F<B, A> f) {
-    return new F<List<B>, P1<List<A>>>() {
-      public P1<List<A>> f(final List<B> as) {
-        return parMap(f, as);
-      }
-    };
+    return as -> parMap(f, as);
   }
 
   /**
@@ -178,11 +172,7 @@ public final class Strategy<A> {
    * @return A function that promotes another function to a parallel function on lists.
    */
   public <B> F<F<B, A>, F<List<B>, P1<List<A>>>> parMapList() {
-    return new F<F<B, A>, F<List<B>, P1<List<A>>>>() {
-      public F<List<B>, P1<List<A>>> f(final F<B, A> f) {
-        return parMapList(f);
-      }
-    };
+    return f -> parMapList(f);
   }
 
   /**
@@ -191,13 +181,9 @@ public final class Strategy<A> {
    * @return A function that promotes another function to a blocking parallel function on lists.
    */
   public <B> F<F<B, A>, F<List<B>, List<A>>> parMapList1() {
-    return new F<F<B, A>, F<List<B>, List<A>>>() {
-      public F<List<B>, List<A>> f(final F<B, A> f) {
-        return new F<List<B>, List<A>>() {
-          public List<A> f(final List<B> bs) {
-            return parMap1(f, bs);
-          }
-        };
+    return f -> new F<List<B>, List<A>>() {
+      public List<A> f(final List<B> bs) {
+        return parMap1(f, bs);
       }
     };
   }
@@ -209,11 +195,7 @@ public final class Strategy<A> {
    * @return The function transformed into a parallel function on arrays.
    */
   public <B> F<Array<B>, P1<Array<A>>> parMapArray(final F<B, A> f) {
-    return new F<Array<B>, P1<Array<A>>>() {
-      public P1<Array<A>> f(final Array<B> as) {
-        return parMap(f, as);
-      }
-    };
+    return as -> parMap(f, as);
   }
 
   /**
@@ -222,11 +204,7 @@ public final class Strategy<A> {
    * @return A function that promotes another function to a parallel function on arrays.
    */
   public <B> F<F<B, A>, F<Array<B>, P1<Array<A>>>> parMapArray() {
-    return new F<F<B, A>, F<Array<B>, P1<Array<A>>>>() {
-      public F<Array<B>, P1<Array<A>>> f(final F<B, A> f) {
-        return parMapArray(f);
-      }
-    };
+    return f -> parMapArray(f);
   }
 
   /**
@@ -235,15 +213,7 @@ public final class Strategy<A> {
    * @return A function that promotes another function to a blocking parallel function on arrays.
    */
   public <B> F<F<B, A>, F<Array<B>, Array<A>>> parMapArray1() {
-    return new F<F<B, A>, F<Array<B>, Array<A>>>() {
-      public F<Array<B>, Array<A>> f(final F<B, A> f) {
-        return new F<Array<B>, Array<A>>() {
-          public Array<A> f(final Array<B> bs) {
-            return parMap1(f, bs);
-          }
-        };
-      }
-    };
+    return f -> bs -> parMap1(f, bs);
   }
 
   /**
@@ -286,7 +256,7 @@ public final class Strategy<A> {
   public static <A> P1<List<A>> parListChunk(final Strategy<List<A>> s,
                                              final int chunkLength,
                                              final List<P1<A>> as) {
-    return fmap(List.<A>join()).f(s.parList(as.partition(chunkLength).map(P1.<A>sequenceList())));
+    return fmap(List.<A>join()).f(s.parList(as.partition(chunkLength).map(Product1.<A>sequenceList())));
   }
 
   /**
@@ -329,11 +299,7 @@ public final class Strategy<A> {
    * @return A transformation that zips two lists using the argument function, in parallel.
    */
   public <B, C> F2<List<B>, List<C>, P1<List<A>>> parZipListWith(final F2<B, C, A> f) {
-    return new F2<List<B>, List<C>, P1<List<A>>>() {
-      public P1<List<A>> f(final List<B> bs, final List<C> cs) {
-        return parZipWith(f, bs, cs);
-      }
-    };
+    return (bs, cs) -> parZipWith(f, bs, cs);
   }
 
   /**
@@ -344,11 +310,7 @@ public final class Strategy<A> {
    * @return A transformation that zips two arrays using the argument function, in parallel.
    */
   public <B, C> F2<Array<B>, Array<C>, P1<Array<A>>> parZipArrayWith(final F2<B, C, A> f) {
-    return new F2<Array<B>, Array<C>, P1<Array<A>>>() {
-      public P1<Array<A>> f(final Array<B> bs, final Array<C> cs) {
-        return parZipWith(f, bs, cs);
-      }
-    };
+    return (bs, cs) -> parZipWith(f, bs, cs);
   }
 
   /**
@@ -357,11 +319,7 @@ public final class Strategy<A> {
    * @return A function which, given a Future, yields a product-1 that waits for it.
    */
   public static <A> F<Future<A>, P1<A>> obtain() {
-    return new F<Future<A>, P1<A>>() {
-      public P1<A> f(final Future<A> t) {
-        return obtain(t);
-      }
-    };
+    return t -> obtain(t);
   }
 
   /**
@@ -371,16 +329,14 @@ public final class Strategy<A> {
    * @return A product-1 that waits for the given future to obtain a value.
    */
   public static <A> P1<A> obtain(final Future<A> t) {
-    return new P1<A>() {
-      public A _1() {
-        try {
-          return t.get();
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          throw new Error(e);
-        } catch (ExecutionException e) {
-          throw new Error(e);
-        }
+    return () -> {
+      try {
+        return t.get();
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new Error(e);
+      } catch (ExecutionException e) {
+        throw new Error(e);
       }
     };
   }
@@ -406,12 +362,10 @@ public final class Strategy<A> {
    *         every evaluation.
    */
   public static <A> Strategy<A> simpleThreadStrategy() {
-    return strategy(new F<P1<A>, P1<A>>() {
-      public P1<A> f(final P1<A> p) {
-        final FutureTask<A> t = new FutureTask<A>(Java.<A>P1_Callable().f(p));
-        new Thread(t).start();
-        return obtain(t);
-      }
+    return strategy((final P1<A> p) -> {
+      final FutureTask<A> t = new FutureTask<>(Java.<A>P1_Callable().f(p));
+      new Thread(t).start();
+      return obtain(t);
     });
   }
 
@@ -424,11 +378,7 @@ public final class Strategy<A> {
    *         of parallelism.
    */
   public static <A> Strategy<A> executorStrategy(final ExecutorService s) {
-    return strategy(new F<P1<A>, P1<A>>() {
-      public P1<A> f(final P1<A> p) {
-        return obtain(s.submit(Java.<A>P1_Callable().f(p)));
-      }
-    });
+    return strategy((final P1<A> p) -> obtain(s.submit(Java.<A>P1_Callable().f(p))));
   }
 
   /**
@@ -440,11 +390,7 @@ public final class Strategy<A> {
    *         and notifies the service of task completion.
    */
   public static <A> Strategy<A> completionStrategy(final CompletionService<A> s) {
-    return strategy(new F<P1<A>, P1<A>>() {
-      public P1<A> f(final P1<A> p) {
-        return obtain(s.submit(Java.<A>P1_Callable().f(p)));
-      }
-    });
+    return strategy((final P1<A> p) -> obtain(s.submit(Java.<A>P1_Callable().f(p))));
   }
 
   /**
@@ -453,11 +399,7 @@ public final class Strategy<A> {
    * @return A strategy that performs sequential (non-concurrent) evaluation of its argument.
    */
   public static <A> Strategy<A> seqStrategy() {
-    return strategy(new F<P1<A>, P1<A>>() {
-      public P1<A> f(final P1<A> a) {
-        return P.p(a._1());
-      }
-    });
+    return strategy((final P1<A> a) -> P.p(a._1()));
   }
 
   /**
@@ -520,19 +462,13 @@ public final class Strategy<A> {
    * @return A strategy that captures any runtime errors with a side-effect.
    */
   public static <A> Strategy<A> errorStrategy(final Strategy<A> s, final Effect<Error> e) {
-    return s.comap(new F<P1<A>, P1<A>>() {
-      public P1<A> f(final P1<A> a) {
-        return new P1<A>() {
-          public A _1() {
-            try {
-              return a._1();
-            } catch (Throwable t) {
-              final Error error = new Error(t);
-              e.e(error);
-              throw error;
-            }
-          }
-        };
+    return s.comap(a -> () -> {
+      try {
+        return a._1();
+      } catch (Throwable t) {
+        final Error error = new Error(t);
+        e.e(error);
+        throw error;
       }
     });
   }
@@ -544,11 +480,7 @@ public final class Strategy<A> {
    * @return A new strategy that fully evaluates Callables, using the given strategy.
    */
   public static <A> Strategy<Callable<A>> callableStrategy(final Strategy<Callable<A>> s) {
-    return s.comap(new F<P1<Callable<A>>, P1<Callable<A>>>() {
-      public P1<Callable<A>> f(final P1<Callable<A>> a) {
-        return P1.curry(Callables.<A>normalise()).f(a._1());
-      }
-    });
+    return s.comap(a -> Product1.curry(Callables.<A>normalise()).f(a._1()));
   }
 
 }

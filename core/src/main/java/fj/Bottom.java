@@ -38,10 +38,8 @@ public final class Bottom {
    * @return A thunk that throws an error using the given message when evaluated.
    */
   public static <A> P1<A> error_(final String s) {
-    return new P1<A>() {
-      @Override public A _1() {
-        throw new Error(s);
-      }
+    return () -> {
+      throw new Error(s);
     };
   }
 
@@ -52,10 +50,8 @@ public final class Bottom {
    * @return A function that throws an error using the given message, ignoring its argument.
    */
   public static <A, B> F<A, B> errorF(final String s) {
-    return new F<A, B>() {
-      public B f(final A a) {
-        throw new Error(s);
-      }
+    return a -> {
+      throw new Error(s);
     };
   }
 
@@ -87,11 +83,7 @@ public final class Bottom {
    * @return A function that returns the <code>toString</code> for a throwable.
    */
   public static <T extends Throwable> F<T, String> eToString() {
-    return new F<T, String>() {
-      public String f(final Throwable t) {
-        return t.toString();
-      }
-    };
+    return t -> t.toString();
   }
 
   /**
@@ -100,10 +92,6 @@ public final class Bottom {
    * @return A function that returns the <code>getMessage</code> for a throwable.
    */
   public static <T extends Throwable> F<T, String> eMessage() {
-    return new F<T, String>() {
-      public String f(final Throwable t) {
-        return t.getMessage();
-      }
-    };
+    return t -> t.getMessage();
   }
 }

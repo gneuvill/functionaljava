@@ -31,7 +31,7 @@ public final class V2<A> implements Iterable<A> {
    * @return A new vector-2.
    */
   public static <A> V2<A> p(final P2<A, A> p) {
-    return new V2<A>(p);
+    return new V2<>(p);
   }
 
   /**
@@ -58,11 +58,7 @@ public final class V2<A> implements Iterable<A> {
    * @return a function that gets the first element of a given vector.
    */
   public static <A> F<V2<A>, A> __1() {
-    return new F<V2<A>, A>() {
-      public A f(final V2<A> v) {
-        return v._1();
-      }
-    };
+    return v -> v._1();
   }
 
   /**
@@ -71,11 +67,7 @@ public final class V2<A> implements Iterable<A> {
    * @return a function that gets the second element of a given vector.
    */
   public static <A> F<V2<A>, A> __2() {
-    return new F<V2<A>, A>() {
-      public A f(final V2<A> v) {
-        return v._2();
-      }
-    };
+    return v -> v._2();
   }
 
   /**
@@ -111,11 +103,7 @@ public final class V2<A> implements Iterable<A> {
    * @return a stream of the elements of this vector.
    */
   public Stream<A> toStream() {
-    return Stream.cons(_1(), new P1<Stream<A>>() {
-      public Stream<A> _1() {
-        return Stream.single(_2());
-      }
-    });
+    return Stream.cons(_1(), () -> Stream.single(_2()));
   }
 
   /**
@@ -124,11 +112,7 @@ public final class V2<A> implements Iterable<A> {
    * @return a function that transforms a vector-2 to a stream of its elements.
    */
   public static <A> F<V2<A>, Stream<A>> toStream_() {
-    return new F<V2<A>, Stream<A>>() {
-      public Stream<A> f(final V2<A> v) {
-        return v.toStream();
-      }
-    };
+    return v -> v.toStream();
   }
 
   /**
@@ -137,11 +121,7 @@ public final class V2<A> implements Iterable<A> {
    * @return a function that transforms a vector-2 to the equivalent product-2.
    */
   public static <A> F<V2<A>, P2<A, A>> p_() {
-    return new F<V2<A>, P2<A, A>>() {
-      public P2<A, A> f(final V2<A> v) {
-        return v.p();
-      }
-    };
+    return v -> v.p();
   }
 
   /**

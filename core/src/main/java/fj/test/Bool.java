@@ -55,11 +55,7 @@ public final class Bool {
    * @return a property that produces a result only if this value is true.
    */
   public Property implies(final Property p) {
-    return Property.implies(b, new P1<Property>() {
-      public Property _1() {
-        return p;
-      }
-    });
+    return Property.implies(b, () -> p);
   }
 
   /**
@@ -79,11 +75,7 @@ public final class Bool {
    * @return a property that produces a result only if this value is true.
    */
   public Property implies(final boolean c) {
-    return Property.implies(b, new P1<Property>() {
-      public Property _1() {
-        return prop(c);
-      }
-    });
+    return Property.implies(b, () -> prop(c));
   }
 
   /**

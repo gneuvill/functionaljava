@@ -8,6 +8,7 @@ import fj.P2;
 import static fj.Function.*;
 import static fj.data.Stream.*;
 import fj.Monoid;
+import fj.Product1;
 import fj.Show;
 
 import java.util.Collection;
@@ -54,7 +55,7 @@ public final class Tree<A> implements Iterable<A> {
    * @return A newly sprouted tree.
    */
   public static <A> Tree<A> node(final A root, final P1<Stream<Tree<A>>> forest) {
-    return new Tree<A>(root, forest);
+    return new Tree<>(root, forest);
   }
 
   /**
@@ -65,7 +66,7 @@ public final class Tree<A> implements Iterable<A> {
    * @return A newly sprouted tree.
    */
   public static <A> Tree<A> node(final A root, final Stream<Tree<A>> forest) {
-    return new Tree<A>(root, P.p(forest));
+    return new Tree<>(root, P.p(forest));
   }
 
   /**
@@ -85,11 +86,7 @@ public final class Tree<A> implements Iterable<A> {
    * @return A function that constructs an n-ary tree given a root and a subforest or length n.
    */
   public static <A> F<A, F<P1<Stream<Tree<A>>>, Tree<A>>> node() {
-    return curry(new F2<A, P1<Stream<Tree<A>>>, Tree<A>>() {
-      public Tree<A> f(final A a, final P1<Stream<Tree<A>>> p1) {
-        return node(a, p1);
-      }
-    });
+    return curry((final A a, final P1<Stream<Tree<A>>> p1) -> Tree.node(a, p1));
   }
 
   /**
@@ -116,11 +113,7 @@ public final class Tree<A> implements Iterable<A> {
    * @return A transformation from a tree to its root.
    */
   public static <A> F<Tree<A>, A> root_() {
-    return new F<Tree<A>, A>() {
-      public A f(final Tree<A> a) {
-        return a.root();
-      }
-    };
+    return a -> a.root();
   }
 
   /**
@@ -129,11 +122,7 @@ public final class Tree<A> implements Iterable<A> {
    * @return A transformation from a tree to its subforest.
    */
   public static <A> F<Tree<A>, P1<Stream<Tree<A>>>> subForest_() {
-    return new F<Tree<A>, P1<Stream<Tree<A>>>>() {
-      public P1<Stream<Tree<A>>> f(final Tree<A> a) {
-        return a.subForest();
-      }
-    };
+    return a -> a.subForest();
   }
 
   /**
@@ -142,11 +131,7 @@ public final class Tree<A> implements Iterable<A> {
    * @return The elements of the tree in pre-order.
    */
   public Stream<A> flatten() {
-    final F2<Tree<A>, P1<Stream<A>>, Stream<A>> squish = new F2<Tree<A>, P1<Stream<A>>, Stream<A>>() {
-      public Stream<A> f(final Tree<A> t, final P1<Stream<A>> xs) {
-        return cons(t.root(), t.subForest().map(Stream.<Tree<A>, Stream<A>>foldRight().f(curry()).f(xs._1())));
-      }
-    };
+    final F2<Tree<A>, P1<Stream<A>>, Stream<A>> squish = (t, xs) -> cons(t.root(), t.subForest().map(Stream.<Tree<A>, Stream<A>>foldRight().f(curry()).f(xs._1())));
     return squish.f(this, P.p(Stream.<A>nil()));
   }
 
@@ -159,11 +144,7 @@ public final class Tree<A> implements Iterable<A> {
    * @return The elements of the tree in pre-order.
    */
   public static <A> F<Tree<A>, Stream<A>> flatten_() {
-    return new F<Tree<A>, Stream<A>>() {
-      public Stream<A> f(final Tree<A> t) {
-        return t.flatten();
-      }
-    };
+    return t -> t.flatten();
   }
 
   /**
@@ -173,7 +154,7 @@ public final class Tree<A> implements Iterable<A> {
    */
   public Stream<Stream<A>> levels() {
     final F<Stream<Tree<A>>, Stream<Tree<A>>> flatSubForests =
-        Stream.<Tree<A>, Tree<A>>bind_().f(compose(P1.<Stream<Tree<A>>>__1(), Tree.<A>subForest_()));
+        Stream.<Tree<A>, Tree<A>>bind_().f(compose(Product1.<Stream<Tree<A>>>__1(), Tree.<A>subForest_()));
     final F<Stream<Tree<A>>, Stream<A>> roots = Stream.<Tree<A>, A>map_().f(Tree.<A>root_());
     return iterateWhile(flatSubForests, Stream.<Tree<A>>isNotEmpty_(), single(this)).map(roots);
   }
@@ -194,15 +175,7 @@ public final class Tree<A> implements Iterable<A> {
    * @return A transformation to lift any function so that it maps over Trees.
    */
   public static <A, B> F<F<A, B>, F<Tree<A>, Tree<B>>> fmap_() {
-    return new F<F<A, B>, F<Tree<A>, Tree<B>>>() {
-      public F<Tree<A>, Tree<B>> f(final F<A, B> f) {
-        return new F<Tree<A>, Tree<B>>() {
-          public Tree<B> f(final Tree<A> a) {
-            return a.fmap(f);
-          }
-        };
-      }
-    };
+    return f -> a -> a.fmap(f);
   }
 
   /**
@@ -233,11 +206,7 @@ public final class Tree<A> implements Iterable<A> {
    * @return A function that, given a tree, folds it with the given monoid.
    */
   public static <A, B> F<Tree<A>, B> foldMap_(final F<A, B> f, final Monoid<B> m) {
-    return new F<Tree<A>, B>() {
-      public B f(final Tree<A> t) {
-        return t.foldMap(f, m);
-      }
-    };
+    return t -> t.foldMap(f, m);
   }
 
   /**
@@ -247,11 +216,9 @@ public final class Tree<A> implements Iterable<A> {
    * @return A function which, given a seed value, yields a tree.
    */
   public static <A, B> F<B, Tree<A>> unfoldTree(final F<B, P2<A, P1<Stream<B>>>> f) {
-    return new F<B, Tree<A>>() {
-      public Tree<A> f(final B b) {
-        final P2<A, P1<Stream<B>>> p = f.f(b);
-        return node(p._1(), p._2().map(Stream.<B, Tree<A>>map_().f(unfoldTree(f))));
-      }
+    return b -> {
+      final P2<A, P1<Stream<B>>> p = f.f(b);
+      return node(p._1(), p._2().map(Stream.<B, Tree<A>>map_().f(unfoldTree(f))));
     };
   }
 
@@ -264,11 +231,7 @@ public final class Tree<A> implements Iterable<A> {
    *         root's children are labels of the root's subforest, etc.
    */
   public <B> Tree<B> cobind(final F<Tree<A>, B> f) {
-    return unfoldTree(new F<Tree<A>, P2<B, P1<Stream<Tree<A>>>>>() {
-      public P2<B, P1<Stream<Tree<A>>>> f(final Tree<A> t) {
-        return P.p(f.f(t), t.subForest());
-      }
-    }).f(this);
+    return unfoldTree((final Tree<A> t) -> P.p(f.f(t), t.subForest())).f(this);
   }
 
   /**
@@ -315,11 +278,7 @@ public final class Tree<A> implements Iterable<A> {
    * @return a show instance that draws a 2-dimensional representation of a tree.
    */
   public static <A> Show<Tree<A>> show2D(final Show<A> s) {
-    return Show.showS(new F<Tree<A>, String>() {
-      public String f(final Tree<A> tree) {
-        return tree.draw(s);
-      }
-    });
+    return Show.showS((final Tree<A> tree) -> tree.draw(s));
   }
 
   /**
@@ -354,11 +313,7 @@ public final class Tree<A> implements Iterable<A> {
    * @return The folded tree
    */
   public static <A, B> Tree<B> bottomUp(Tree<A> t, final F<P2<A, Stream<B>>, B> f) {
-    final F<Tree<A>, Tree<B>> recursiveCall = new F<Tree<A>, Tree<B>>() {
-      @Override public Tree<B> f(Tree<A> a) {
-        return bottomUp(a, f);
-      }
-    };
+    final F<Tree<A>, Tree<B>> recursiveCall = a -> bottomUp(a, f);
  
     final Stream<Tree<B>> tbs = t.subForest()._1().map(recursiveCall);
     return Tree.node(f.f(P.p(t.root(), tbs.map(Tree.<B> getRoot()))), tbs);
@@ -368,11 +323,7 @@ public final class Tree<A> implements Iterable<A> {
     * @return a function getting the root of a Tree 
 	*/
    private static <A> F<Tree<A>, A> getRoot() {
-     return new F<Tree<A>, A>() {
-       @Override public A f(Tree<A> a) {
-         return a.root();
-       }
-     };
+     return a -> a.root();
    }
 
 }

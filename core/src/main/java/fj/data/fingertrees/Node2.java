@@ -24,7 +24,7 @@ public final class Node2<V, A> extends Node<V, A> {
   }
 
   public Digit<V, A> toDigit() {
-    return new Two<V, A>(measured(), as);
+    return new Two<>(measured(), as);
   }
 
   @SuppressWarnings({"ReturnOfNull"})

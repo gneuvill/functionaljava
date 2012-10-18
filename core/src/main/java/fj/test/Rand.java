@@ -75,27 +75,11 @@ public final class Rand {
    * @return A random generator with the given seed.
    */
   public Rand reseed(final long seed) {
-    return new Rand(new F<Option<Long>, F<Integer, F<Integer, Integer>>>() {
-      public F<Integer, F<Integer, Integer>> f(final Option<Long> old) {
-        return new F<Integer, F<Integer, Integer>>() {
-          public F<Integer, Integer> f(final Integer from) {
-            return new F<Integer, Integer>() {
-              public Integer f(final Integer to) {
-                return f.f(some(seed)).f(from).f(to);
-              }
-            };
-          }
-        };
-      }
-    }, new F<Option<Long>, F<Double, F<Double, Double>>>() {
-      public F<Double, F<Double, Double>> f(final Option<Long> old) {
-        return new F<Double, F<Double, Double>>() {
-          public F<Double, Double> f(final Double from) {
-            return new F<Double, Double>() {
-              public Double f(final Double to) {
-                return g.f(some(seed)).f(from).f(to);
-              }
-            };
+    return new Rand(old -> from -> to -> f.f(some(seed)).f(from).f(to), old -> new F<Double, F<Double, Double>>() {
+      public F<Double, Double> f(final Double from) {
+        return new F<Double, Double>() {
+          public Double f(final Double to) {
+            return g.f(some(seed)).f(from).f(to);
           }
         };
       }
@@ -115,40 +99,28 @@ public final class Rand {
   }
 
 
-  private static final F<Long, Random> fr = new F<Long, Random>() {
-    public Random f(final Long x) {
-      return new Random(x);
-    }
-  };
+  private static final F<Long, Random> fr = x -> new Random(x);
 
   /**
    * A standard random generator that uses {@link Random}.
    */
-  public static final Rand standard = new Rand(new F<Option<Long>, F<Integer, F<Integer, Integer>>>() {
-    public F<Integer, F<Integer, Integer>> f(final Option<Long> seed) {
-      return new F<Integer, F<Integer, Integer>>() {
-        public F<Integer, Integer> f(final Integer from) {
-          return new F<Integer, Integer>() {
-            public Integer f(final Integer to) {
-              final int f = min(from, to);
-              final int t = max(from, to);
-              return f + seed.map(fr).orSome(new Random()).nextInt(t - f + 1);
-            }
-          };
+  public static final Rand standard = new Rand(seed -> new F<Integer, F<Integer, Integer>>() {
+    public F<Integer, Integer> f(final Integer from) {
+      return new F<Integer, Integer>() {
+        public Integer f(final Integer to) {
+          final int f = min(from, to);
+          final int t = max(from, to);
+          return f + seed.map(fr).orSome(new Random()).nextInt(t - f + 1);
         }
       };
     }
-  }, new F<Option<Long>, F<Double, F<Double, Double>>>() {
-    public F<Double, F<Double, Double>> f(final Option<Long> seed) {
-      return new F<Double, F<Double, Double>>() {
-        public F<Double, Double> f(final Double from) {
-          return new F<Double, Double>() {
-            public Double f(final Double to) {
-              final double f = min(from, to);
-              final double t = max(from, to);
-              return seed.map(fr).orSome(new Random()).nextDouble() * (t - f) + f;
-            }
-          };
+  }, seed -> new F<Double, F<Double, Double>>() {
+    public F<Double, Double> f(final Double from) {
+      return new F<Double, Double>() {
+        public Double f(final Double to) {
+          final double f = min(from, to);
+          final double t = max(from, to);
+          return seed.map(fr).orSome(new Random()).nextDouble() * (t - f) + f;
         }
       };
     }

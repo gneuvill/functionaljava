@@ -7,7 +7,7 @@ import fj.P1;
  * is the identity morphism from B to B.
  */
 @SuppressWarnings({"UnusedDeclaration"})
-public final class $<A, B> extends P1<B> {
+public final class $<A, B> implements P1<B> {
 
   private final B b;
 
@@ -16,7 +16,7 @@ public final class $<A, B> extends P1<B> {
   }
 
   public static <A, B> $<A, B> _(final B b) {
-    return new $<A, B>(b);
+    return new $<>(b);
   }
 
   public B _1() {

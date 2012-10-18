@@ -105,13 +105,9 @@ public final class Gen<A> {
    * @return A new generator after applying the mapping function.
    */
   public <B> Gen<B> map(final F<A, B> f) {
-    return new Gen<B>(new F<Integer, F<Rand, B>>() {
-      public F<Rand, B> f(final Integer i) {
-        return new F<Rand, B>() {
-          public B f(final Rand r) {
-            return f.f(gen(i, r));
-          }
-        };
+    return new Gen<>(i -> new F<Rand, B>() {
+      public B f(final Rand r) {
+        return f.f(gen(i, r));
       }
     });
   }
@@ -123,16 +119,14 @@ public final class Gen<A> {
    * @return A generator that produces values that meet the given predicate.
    */
   public Gen<A> filter(final F<A, Boolean> f) {
-    return gen(curry(new F2<Integer, Rand, A>() {
-      public A f(final Integer i, final Rand r) {
-        A a;
+    return gen(curry((final Integer i, final Rand r) -> {
+      A a;
 
-        do {
-          a = gen(i, r);
-        } while(!f.f(a));
+      do {
+        a = gen(i, r);
+      } while(!f.f(a));
 
-        return a;
-      }
+      return a;
     }));
   }
 
@@ -166,15 +160,7 @@ public final class Gen<A> {
    * @return A new generator after binding the given function.
    */
   public <B> Gen<B> bind(final F<A, Gen<B>> f) {
-    return new Gen<B>(new F<Integer, F<Rand, B>>() {
-      public F<Rand, B> f(final Integer i) {
-        return new F<Rand, B>() {
-          public B f(final Rand r) {
-            return f.f(gen(i, r)).f.f(i).f(r);
-          }
-        };
-      }
-    });
+    return new Gen<>(i -> r -> f.f(gen(i, r)).f.f(i).f(r));
   }
 
   /**
@@ -289,15 +275,7 @@ public final class Gen<A> {
    * @return A new generator after function application.
    */
   public <B> Gen<B> apply(final Gen<F<A, B>> gf) {
-    return gf.bind(new F<F<A, B>, Gen<B>>() {
-      public Gen<B> f(final F<A, B> f) {
-        return map(new F<A, B>() {
-          public B f(final A a) {
-            return f.f(a);
-          }
-        });
-      }
-    });
+    return gf.bind(f -> map(a -> f.f(a)));
   }
 
   /**
@@ -307,13 +285,9 @@ public final class Gen<A> {
    * @return A new generator that uses the given size.
    */
   public Gen<A> resize(final int s) {
-    return new Gen<A>(new F<Integer, F<Rand, A>>() {
-      public F<Rand, A> f(final Integer i) {
-        return new F<Rand, A>() {
-          public A f(final Rand r) {
-            return f.f(s).f(r);
-          }
-        };
+    return new Gen<>(i -> new F<Rand, A>() {
+      public A f(final Rand r) {
+        return f.f(s).f(r);
       }
     });
   }
@@ -325,7 +299,7 @@ public final class Gen<A> {
    * @return A new generator that uses the given function.
    */
   public static <A> Gen<A> gen(final F<Integer, F<Rand, A>> f) {
-    return new Gen<A>(f);
+    return new Gen<>(f);
   }
 
   /**
@@ -335,13 +309,9 @@ public final class Gen<A> {
    * @return A generator of lists after sequencing the given generators.
    */
   public static <A> Gen<List<A>> sequence(final List<Gen<A>> gs) {
-    return gs.foldRight(new F<Gen<A>, F<Gen<List<A>>, Gen<List<A>>>>() {
-      public F<Gen<List<A>>, Gen<List<A>>> f(final Gen<A> ga) {
-        return new F<Gen<List<A>>, Gen<List<A>>>() {
-          public Gen<List<A>> f(final Gen<List<A>> gas) {
-            return ga.bind(gas, List.<A>cons());
-          }
-        };
+    return gs.foldRight(ga -> new F<Gen<List<A>>, Gen<List<A>>>() {
+      public Gen<List<A>> f(final Gen<List<A>> gas) {
+        return ga.bind(gas, List.<A>cons());
       }
     }, value(List.<A>nil()));
   }
@@ -365,11 +335,7 @@ public final class Gen<A> {
    * @return A new generator.
    */
   public static <A> Gen<A> parameterised(final F<Integer, F<Rand, Gen<A>>> f) {
-    return new Gen<A>(curry(new F2<Integer, Rand, A>() {
-      public A f(final Integer i, final Rand r) {
-        return f.f(i).f(r).gen(i, r);
-      }
-    }));
+    return new Gen<>(curry((final Integer i, final Rand r) -> f.f(i).f(r).gen(i, r)));
   }
 
   /**
@@ -389,15 +355,7 @@ public final class Gen<A> {
    * @return A generator that always produces the given value.
    */
   public static <A> Gen<A> value(final A a) {
-    return new Gen<A>(new F<Integer, F<Rand, A>>() {
-      public F<Rand, A> f(final Integer i) {
-        return new F<Rand, A>() {
-          public A f(final Rand r) {
-            return a;
-          }
-        };
-      }
-    });
+    return new Gen<>(i -> r -> a);
   }
 
   /**
@@ -410,11 +368,7 @@ public final class Gen<A> {
   public static Gen<Integer> choose(final int from, final int to) {
     final int f = min(from, to);
     final int t = max(from, to);
-    return parameterised(curry(new F2<Integer, Rand, Gen<Integer>>() {
-      public Gen<Integer> f(final Integer i, final Rand r) {
-        return value(r.choose(f, t));
-      }
-    }));
+    return parameterised(curry((final Integer i, final Rand r) -> value(r.choose(f, t))));
   }
 
   /**
@@ -427,15 +381,7 @@ public final class Gen<A> {
   public static Gen<Double> choose(final double from, final double to) {
     final double f = min(from, to);
     final double t = max(from, to);
-    return parameterised(new F<Integer, F<Rand, Gen<Double>>>() {
-      public F<Rand, Gen<Double>> f(final Integer i) {
-        return new F<Rand, Gen<Double>>() {
-          public Gen<Double> f(final Rand r) {
-            return value(r.choose(f, t));
-          }
-        };
-      }
-    });
+    return parameterised(i -> r -> value(r.choose(f, t)));
   }
 
   /**
@@ -444,14 +390,8 @@ public final class Gen<A> {
    * @return A generator that never returns a value.
    */
   public static <A> Gen<A> fail() {
-    return new Gen<A>(new F<Integer, F<Rand, A>>() {
-      public F<Rand, A> f(final Integer i) {
-        return new F<Rand, A>() {
-          public A f(final Rand r) {
-            throw error("Failing generator");
-          }
-        };
-      }
+    return new Gen<>(i -> r -> {
+      throw error("Failing generator");
     });
   }
 
@@ -488,11 +428,7 @@ public final class Gen<A> {
 
     final F<P2<Integer, Gen<A>>, Integer> f = __1();
 
-    return choose(1, intAdditionMonoid.sumLeft(gs.map(f))).bind(new F<Integer, Gen<A>>() {
-      public Gen<A> f(final Integer i) {
-        return new Pick().pick(i, gs);
-      }
-    });
+    return choose(1, intAdditionMonoid.sumLeft(gs.map(f))).bind(i -> new Pick().pick(i, gs));
   }
 
   /**
@@ -503,15 +439,11 @@ public final class Gen<A> {
    * @return A new generator that uses the given pairs of frequency and value.
    */
   public static <A> Gen<A> elemFrequency(final List<P2<Integer, A>> as) {
-    return frequency(as.map(new F<P2<Integer, A>, P2<Integer, Gen<A>>>() {
-      public P2<Integer, Gen<A>> f(final P2<Integer, A> p) {
-        return p.map2(new F<A, Gen<A>>() {
-          public Gen<A> f(final A a) {
-            return value(a);
-          }
-        });
+    return frequency(as.map((F<P2<Integer, A>, P2<Integer, Gen<A>>>) p -> p.map2(new F<A, Gen<A>>() {
+      public Gen<A> f(final A a) {
+        return value(a);
       }
-    }));
+    })));
   }
 
   /**
@@ -521,11 +453,7 @@ public final class Gen<A> {
    * @return A generator that produces values from the given arguments.
    */
   public static <A> Gen<A> elements(final A... as) {
-    return array(as).isEmpty() ? Gen.<A>fail() : choose(0, as.length - 1).map(new F<Integer, A>() {
-      public A f(final Integer i) {
-        return as[i];
-      }
-    });
+    return array(as).isEmpty() ? Gen.<A>fail() : choose(0, as.length - 1).map(i -> as[i]);
   }
 
   /**
@@ -537,11 +465,7 @@ public final class Gen<A> {
    *         requests.
    */
   public static <A> Gen<A> oneOf(final List<Gen<A>> gs) {
-    return gs.isEmpty() ? Gen.<A>fail() : choose(0, gs.length() - 1).bind(new F<Integer, Gen<A>>() {
-      public Gen<A> f(final Integer i) {
-        return gs.index(i);
-      }
-    });
+    return gs.isEmpty() ? Gen.<A>fail() : choose(0, gs.length() - 1).bind(i -> gs.index(i));
   }
 
   /**
@@ -552,15 +476,7 @@ public final class Gen<A> {
    * @return A generator of lists whose values come from the given generator.
    */
   public static <A> Gen<List<A>> listOf(final Gen<A> g, final int x) {
-    return sized(new F<Integer, Gen<List<A>>>() {
-      public Gen<List<A>> f(final Integer size) {
-        return choose(x, size).bind(new F<Integer, Gen<List<A>>>() {
-          public Gen<List<A>> f(final Integer n) {
-            return sequenceN(n, g);
-          }
-        });
-      }
-    });
+    return sized(size -> choose(x, size).bind(n -> sequenceN(n, g)));
   }
 
   /**
@@ -593,22 +509,20 @@ public final class Gen<A> {
    * @return A generator of lists that picks the given number of elements from the given list.
    */
   public static <A> Gen<List<A>> pick(final int n, final List<A> as) {
-    return n < 0 || n > as.length() ? Gen.<List<A>>fail() : sequenceN(n, choose(0, as.length() - 1)).map(new F<List<Integer>, List<A>>() {
-      public List<A> f(final List<Integer> is) {
-        List<A> r = nil();
+    return n < 0 || n > as.length() ? Gen.<List<A>>fail() : sequenceN(n, choose(0, as.length() - 1)).map(is -> {
+      List<A> r = nil();
 
-        List<Integer> iis = is.sort(intOrd);
-        List<P2<A, Integer>> aas = as.zipIndex();
+      List<Integer> iis = is.sort(intOrd);
+      List<P2<A, Integer>> aas = as.zipIndex();
 
-        //noinspection ForLoopWithMissingComponent
-        for(; iis.isNotEmpty() && aas.isNotEmpty(); aas = aas.tail())
-          if(iis.head().equals(aas.head()._2()))
-            iis = iis.tail();
-          else
-            r = r.snoc(aas.head()._1());
+      //noinspection ForLoopWithMissingComponent
+      for(; iis.isNotEmpty() && aas.isNotEmpty(); aas = aas.tail())
+        if(iis.head().equals(aas.head()._2()))
+          iis = iis.tail();
+        else
+          r = r.snoc(aas.head()._1());
 
-        return r;
-      }
+      return r;
     });
   }
 
@@ -619,11 +533,7 @@ public final class Gen<A> {
    * @return A generator of lists that produces some of the values of the given list.
    */
   public static <A> Gen<List<A>> someOf(final List<A> as) {
-    return choose(0, as.length()).bind(new F<Integer, Gen<List<A>>>() {
-      public Gen<List<A>> f(final Integer i) {
-        return pick(i, as);
-      }
-    });
+    return choose(0, as.length()).bind(i -> pick(i, as));
   }
 
   /**
@@ -633,18 +543,6 @@ public final class Gen<A> {
    * @return A generator for functions.
    */
   public static <A, B> Gen<F<A, B>> promote(final F<A, Gen<B>> f) {
-    return new Gen<F<A, B>>(new F<Integer, F<Rand, F<A, B>>>() {
-      public F<Rand, F<A, B>> f(final Integer i) {
-        return new F<Rand, F<A, B>>() {
-          public F<A, B> f(final Rand r) {
-            return new F<A, B>() {
-              public B f(final A a) {
-                return f.f(a).f.f(i).f(r);
-              }
-            };
-          }
-        };
-      }
-    });
+    return new Gen<>(i -> r -> a -> f.f(a).f.f(i).f(r));
   }
 }

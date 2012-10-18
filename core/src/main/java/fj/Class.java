@@ -29,31 +29,24 @@ public final class Class<T> {
    */
   public List<Class<? super T>> inheritance() {
     return unfold(
-        new F<java.lang.Class<? super T>, Option<P2<java.lang.Class<? super T>, java.lang.Class<? super T>>>>() {
-          public Option<P2<java.lang.Class<? super T>, java.lang.Class<? super T>>> f(
-              final java.lang.Class<? super T> c) {
-            if (c == null)
-              return none();
-            else {
-              final P2<java.lang.Class<? super T>, java.lang.Class<? super T>> p =
-                  new P2<java.lang.Class<? super T>, java.lang.Class<? super T>>() {
-                    public java.lang.Class<? super T> _1() {
-                      return c;
-                    }
+            c -> {
+              if (c == null)
+                return none();
+              else {
+                final P2<java.lang.Class<? super T>, java.lang.Class<? super T>> p =
+                    new P2<java.lang.Class<? super T>, java.lang.Class<? super T>>() {
+                      public java.lang.Class<? super T> _1() {
+                        return c;
+                      }
 
-                    @SuppressWarnings({"unchecked"})
-                    public java.lang.Class<? super T> _2() {
-                      return c.getSuperclass();
-                    }
-                  };
-              return some(p);
-            }
-          }
-        }, c).map(new F<java.lang.Class<? super T>, Class<? super T>>() {
-      public Class<? super T> f(final java.lang.Class<? super T> c) {
-        return clas(c);
-      }
-    });
+                      @SuppressWarnings({"unchecked"})
+                      public java.lang.Class<? super T> _2() {
+                        return c.getSuperclass();
+                      }
+                    };
+                return some(p);
+              }
+            }, c).map((F<java.lang.Class<? super T>, Class<? super T>>) c -> clas(c));
   }
 
   /**
@@ -130,6 +123,6 @@ public final class Class<T> {
    * @return A class from the given argument.
    */
   public static <T> Class<T> clas(final java.lang.Class<T> c) {
-    return new Class<T>(c);
+    return new Class<>(c);
   }
 }

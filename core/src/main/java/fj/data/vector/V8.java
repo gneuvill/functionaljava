@@ -8,6 +8,8 @@ import fj.P7;
 import fj.P8;
 import static fj.Function.curry;
 import static fj.P.p2;
+
+import fj.Product1;
 import fj.data.Array;
 import fj.data.NonEmptyList;
 import fj.data.Stream;
@@ -34,11 +36,7 @@ public final class V8<A> implements Iterable<A> {
    * @return A new vector-8.
    */
   public static <A> V8<A> p(final P8<A, A, A, A, A, A, A, A> p) {
-    return new V8<A>(new P1<A>() {
-      public A _1() {
-        return p._1();
-      }
-    }, V7.p(new P7<A, A, A, A, A, A, A>() {
+    return new V8<>(() -> p._1(), V7.p(new P7<A, A, A, A, A, A, A>() {
       public A _1() {
         return p._2();
       }
@@ -77,7 +75,7 @@ public final class V8<A> implements Iterable<A> {
    * @return The new vector.
    */
   public static <A> V8<A> cons(final P1<A> head, final V7<A> tail) {
-    return new V8<A>(head, tail);
+    return new V8<>(head, tail);
   }
 
   /**
@@ -235,11 +233,7 @@ public final class V8<A> implements Iterable<A> {
    * @return a stream of the elements of this vector.
    */
   public Stream<A> toStream() {
-    return Stream.cons(head._1(), new P1<Stream<A>>() {
-      public Stream<A> _1() {
-        return tail.toStream();
-      }
-    });
+    return Stream.cons(head._1(), () -> tail.toStream());
   }
 
   /**
@@ -259,7 +253,7 @@ public final class V8<A> implements Iterable<A> {
    * @return A new vector after the given function has been applied to each element.
    */
   public <B> V8<B> map(final F<A, B> f) {
-    return new V8<B>(head.map(f), tail.map(f));
+    return new V8<>(head.map(f), tail.map(f));
   }
 
   /**
@@ -269,7 +263,7 @@ public final class V8<A> implements Iterable<A> {
    * @return A new vector after zipping the given vector of functions over this vector.
    */
   public <B> V8<B> apply(final V8<F<A, B>> vf) {
-    return new V8<B>(P1.<A, B>apply(head, vf.head()), tail.apply(vf.tail()));
+    return new V8<>(Product1.<A, B>apply(head, vf.head()), tail.apply(vf.tail()));
   }
 
   /**
@@ -312,11 +306,7 @@ public final class V8<A> implements Iterable<A> {
    * @return a function that transforms a vector-8 to a stream of its elements.
    */
   public static <A> F<V8<A>, Stream<A>> toStream_() {
-    return new F<V8<A>, Stream<A>>() {
-      public Stream<A> f(final V8<A> v) {
-        return v.toStream();
-      }
-    };
+    return v -> v.toStream();
   }
 
   /**
@@ -325,11 +315,7 @@ public final class V8<A> implements Iterable<A> {
    * @return a function that transforms a vector-8 to the equivalent product-8.
    */
   public static <A> F<V8<A>, P8<A, A, A, A, A, A, A, A>> p_() {
-    return new F<V8<A>, P8<A, A, A, A, A, A, A, A>>() {
-      public P8<A, A, A, A, A, A, A, A> f(final V8<A> v) {
-        return v.p();
-      }
-    };
+    return v -> v.p();
   }
 
 
@@ -339,11 +325,7 @@ public final class V8<A> implements Iterable<A> {
    * @return a function that gets the first element of a given vector.
    */
   public static <A> F<V8<A>, A> __1() {
-    return new F<V8<A>, A>() {
-      public A f(final V8<A> v) {
-        return v._1();
-      }
-    };
+    return v -> v._1();
   }
 
   /**
@@ -352,11 +334,7 @@ public final class V8<A> implements Iterable<A> {
    * @return a function that gets the second element of a given vector.
    */
   public static <A> F<V8<A>, A> __2() {
-    return new F<V8<A>, A>() {
-      public A f(final V8<A> v) {
-        return v._2();
-      }
-    };
+    return v -> v._2();
   }
 
   /**
@@ -365,11 +343,7 @@ public final class V8<A> implements Iterable<A> {
    * @return a function that gets the third element of a given vector.
    */
   public static <A> F<V8<A>, A> __3() {
-    return new F<V8<A>, A>() {
-      public A f(final V8<A> v) {
-        return v._3();
-      }
-    };
+    return v -> v._3();
   }
 
   /**
@@ -378,11 +352,7 @@ public final class V8<A> implements Iterable<A> {
    * @return a function that gets the fourth element of a given vector.
    */
   public static <A> F<V8<A>, A> __4() {
-    return new F<V8<A>, A>() {
-      public A f(final V8<A> v) {
-        return v._4();
-      }
-    };
+    return v -> v._4();
   }
 
   /**
@@ -391,11 +361,7 @@ public final class V8<A> implements Iterable<A> {
    * @return a function that gets the fifth element of a given vector.
    */
   public static <A> F<V8<A>, A> __5() {
-    return new F<V8<A>, A>() {
-      public A f(final V8<A> v) {
-        return v._5();
-      }
-    };
+    return v -> v._5();
   }
 
   /**
@@ -404,11 +370,7 @@ public final class V8<A> implements Iterable<A> {
    * @return a function that gets the sixth element of a given vector.
    */
   public static <A> F<V8<A>, A> __6() {
-    return new F<V8<A>, A>() {
-      public A f(final V8<A> v) {
-        return v._6();
-      }
-    };
+    return v -> v._6();
   }
 
   /**
@@ -417,11 +379,7 @@ public final class V8<A> implements Iterable<A> {
    * @return a function that gets the seventh element of a given vector.
    */
   public static <A> F<V8<A>, A> __7() {
-    return new F<V8<A>, A>() {
-      public A f(final V8<A> v) {
-        return v._7();
-      }
-    };
+    return v -> v._7();
   }
 
   /**
@@ -430,11 +388,7 @@ public final class V8<A> implements Iterable<A> {
    * @return a function that gets the eighth element of a given vector.
    */
   public static <A> F<V8<A>, A> __8() {
-    return new F<V8<A>, A>() {
-      public A f(final V8<A> v) {
-        return v._8();
-      }
-    };
+    return v -> v._8();
   }
 
 }

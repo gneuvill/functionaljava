@@ -36,7 +36,7 @@ public final class TreeMap<K, V> implements Iterable<P2<K, V>> {
    * @return an empty TreeMap with the given key order.
    */
   public static <K, V> TreeMap<K, V> empty(final Ord<K> keyOrd) {
-    return new TreeMap<K, V>(Set.empty(TreeMap.<K, Option<V>>ord(keyOrd)));
+    return new TreeMap<>(Set.empty(TreeMap.<K, Option<V>>ord(keyOrd)));
   }
 
   /**
@@ -61,7 +61,7 @@ public final class TreeMap<K, V> implements Iterable<P2<K, V>> {
   public TreeMap<K, V> set(final K k, final V v) {
     final P3<Set<P2<K, Option<V>>>, Option<P2<K, Option<V>>>, Set<P2<K, Option<V>>>> x
         = tree.split(P.p(k, Option.<V>none()));
-    return new TreeMap<K, V>(x._1().union(x._3().insert(P.p(k, Option.some(v)))));
+    return new TreeMap<>(x._1().union(x._3().insert(P.p(k, Option.some(v)))));
   }
 
   /**
@@ -71,7 +71,7 @@ public final class TreeMap<K, V> implements Iterable<P2<K, V>> {
    * @return A new tree map with the entry corresponding to the given key removed.
    */
   public TreeMap<K, V> delete(final K k) {
-    return new TreeMap<K, V>(tree.delete(P.p(k, Option.<V>none())));
+    return new TreeMap<>(tree.delete(P.p(k, Option.<V>none())));
   }
 
   /**
@@ -137,7 +137,7 @@ public final class TreeMap<K, V> implements Iterable<P2<K, V>> {
    * @return A new mutable map isomorphic to this tree map.
    */
   public Map<K, V> toMutableMap() {
-    final Map<K, V> m = new java.util.TreeMap<K, V>();
+    final Map<K, V> m = new java.util.TreeMap<>();
     for (final P2<K, V> e : this) {
       m.put(e._1(), e._2());
     }
@@ -165,11 +165,7 @@ public final class TreeMap<K, V> implements Iterable<P2<K, V>> {
    * @return a functional representation of this TreeMap.
    */
   public F<K, Option<V>> get() {
-    return new F<K, Option<V>>() {
-      public Option<V> f(final K k) {
-        return get(k);
-      }
-    };
+    return k -> get(k);
   }
 
   /**
@@ -183,7 +179,7 @@ public final class TreeMap<K, V> implements Iterable<P2<K, V>> {
   public P2<Boolean, TreeMap<K, V>> update(final K k, final F<V, V> f) {
     final P2<Boolean, Set<P2<K, Option<V>>>> up =
         tree.update(p(k, Option.<V>none()), P2.<K, Option<V>, Option<V>>map2_(Option.<V, V>map().f(f)));
-    return P.p(up._1(), new TreeMap<K, V>(up._2()));
+    return P.p(up._1(), new TreeMap<>(up._2()));
   }
 
   /**
@@ -231,7 +227,7 @@ public final class TreeMap<K, V> implements Iterable<P2<K, V>> {
     final F<P2<K, Option<V>>, P2<K, Option<W>>> g = P2.map2_(f.mapOption());
     final F<K, P2<K, Option<V>>> coord = flip(P.<K, Option<V>>p2()).f(Option.<V>none());
     final Ord<K> o = tree.ord().comap(coord);
-    return new TreeMap<K, W>(tree.map(TreeMap.<K, Option<W>>ord(o), g));
+    return new TreeMap<>(tree.map(TreeMap.<K, Option<W>>ord(o), g));
   }
 
 }

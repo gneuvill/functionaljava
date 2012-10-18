@@ -58,7 +58,7 @@ public final class NonEmptyList<A> implements Iterable<A> {
    * @return A new list with the given list appended.
    */
   public NonEmptyList<A> append(final NonEmptyList<A> as) {
-    final List.Buffer<A> b = new List.Buffer<A>();
+    final List.Buffer<A> b = new List.Buffer<>();
     b.append(tail);
     b.snoc(as.head);
     b.append(as.tail);
@@ -83,7 +83,7 @@ public final class NonEmptyList<A> implements Iterable<A> {
    * @return A new list after performing the map, then final join.
    */
   public <B> NonEmptyList<B> bind(final F<A, NonEmptyList<B>> f) {
-    final List.Buffer<B> b = new List.Buffer<B>();
+    final List.Buffer<B> b = new List.Buffer<>();
     final NonEmptyList<B> p = f.f(head);
     b.snoc(p.head);
     b.append(p.tail);
@@ -106,11 +106,7 @@ public final class NonEmptyList<A> implements Iterable<A> {
   public NonEmptyList<NonEmptyList<A>> sublists() {
     return fromList(
         somes(toList().toStream().substreams()
-            .map(new F<List<A>, Option<NonEmptyList<A>>>() {
-              public Option<NonEmptyList<A>> f(final List<A> list) {
-                return fromList(list);
-              }
-            }.o(Conversions.<A>Stream_List())).toList())).some();
+            .map(((F<List<A>, Option<NonEmptyList<A>>>) list -> fromList(list)).o(Conversions.<A>Stream_List())).toList())).some();
   }
 
   /**
@@ -120,11 +116,7 @@ public final class NonEmptyList<A> implements Iterable<A> {
    * @return A NonEmptyList of the tails of this list.
    */
   public NonEmptyList<NonEmptyList<A>> tails() {
-    return fromList(somes(toList().tails().map(new F<List<A>, Option<NonEmptyList<A>>>() {
-      public Option<NonEmptyList<A>> f(final List<A> list) {
-        return fromList(list);
-      }
-    }))).some();
+    return fromList(somes(toList().tails().map((F<List<A>, Option<NonEmptyList<A>>>) list -> fromList(list)))).some();
   }
 
   /**
@@ -161,11 +153,7 @@ public final class NonEmptyList<A> implements Iterable<A> {
    * @return A function that takes a non-empty list to a list.
    */
   public static <A> F<NonEmptyList<A>, List<A>> toList_() {
-    return new F<NonEmptyList<A>, List<A>>() {
-      public List<A> f(final NonEmptyList<A> as) {
-        return as.toList();
-      }
-    };
+    return as -> as.toList();
   }
 
   /**
@@ -176,7 +164,7 @@ public final class NonEmptyList<A> implements Iterable<A> {
    * @return A non-empty list with the given head and tail.
    */
   public static <A> NonEmptyList<A> nel(final A head, final List<A> tail) {
-    return new NonEmptyList<A>(head, tail);
+    return new NonEmptyList<>(head, tail);
   }
 
   /**
@@ -195,11 +183,7 @@ public final class NonEmptyList<A> implements Iterable<A> {
    * @return A function that puts an element into a non-empty list.
    */
   public static <A> F<A, NonEmptyList<A>> nel() {
-    return new F<A, NonEmptyList<A>>() {
-      public NonEmptyList<A> f(final A a) {
-        return nel(a);
-      }
-    };
+    return a -> nel(a);
   }
 
   /**

@@ -77,9 +77,13 @@ public abstract class List<A> implements Iterable<A> {
    * @return The length of this list.
    */
   public final int length() {
-    return foldLeft(i -> new F<A, Integer>() {
-      public Integer f(final A a) {
-        return i + 1;
+    return foldLeft(new F<Integer, F<A, Integer>>() {
+      public F<A, Integer> f(final Integer i) {
+        return new F<A, Integer>() {
+          public Integer f(final A a) {
+            return i + 1;
+          }
+        };
       }
     }, 0);
   }
@@ -161,7 +165,15 @@ public abstract class List<A> implements Iterable<A> {
    */
   public final Stream<A> toStream() {
     final Stream<A> nil = Stream.nil();
-    return foldRight((F<A, F<Stream<A>, Stream<A>>>) a -> as -> as.cons(a), nil);
+    return foldRight(new F<A, F<Stream<A>, Stream<A>>>() {
+      public F<Stream<A>, Stream<A>> f(final A a) {
+        return new F<Stream<A>, Stream<A>>() {
+          public Stream<A> f(final Stream<A> as) {
+            return as.cons(a);
+          }
+        };
+      }
+    }, nil);
   }
 
   /**
@@ -216,7 +228,7 @@ public abstract class List<A> implements Iterable<A> {
    * @return A new list with the given element at the head.
    */
   public final List<A> cons(final A a) {
-    return new Cons<>(a, this);
+    return new Cons<A>(a, this);
   }
 
   /**
@@ -227,7 +239,7 @@ public abstract class List<A> implements Iterable<A> {
    * @return A new list with the given element at the head.
    */
   public final List<A> conss(final A a) {
-    return new Cons<>(a, this);
+    return new Cons<A>(a, this);
   }
 
   /**
@@ -382,7 +394,11 @@ public abstract class List<A> implements Iterable<A> {
    *         the given predicate and the second element is the remainder of the list.
    */
   public final P2<List<A>, List<A>> breakk(final F<A, Boolean> p) {
-    return span(a -> !p.f(a));
+    return span(new F<A, Boolean>() {
+      public Boolean f(final A a) {
+        return !p.f(a);
+      }
+    });
   }
 
   /**
@@ -448,7 +464,11 @@ public abstract class List<A> implements Iterable<A> {
    * @return The given function, promoted to operate on lists.
    */
   public static <A, B, C> F<List<A>, F<List<B>, List<C>>> liftM2(final F<A, F<B, C>> f) {
-    return curry((final List<A> as, final List<B> bs) -> as.bind(bs, f));
+    return curry(new F2<List<A>, List<B>, List<C>>() {
+      public List<C> f(final List<A> as, final List<B> bs) {
+        return as.bind(bs, f);
+      }
+    });
   }
 
   /**
@@ -569,7 +589,11 @@ public abstract class List<A> implements Iterable<A> {
    * @return A new list after applying the given list of functions through this list.
    */
   public final <B> List<B> apply(final List<F<A, B>> lf) {
-    return lf.bind((final F<A, B> f) -> map(f));
+    return lf.bind(new F<F<A, B>, List<B>>() {
+      public List<B> f(final F<A, B> f) {
+        return map(f);
+      }
+    });
   }
 
   /**
@@ -611,7 +635,11 @@ public abstract class List<A> implements Iterable<A> {
    * @return A Trampoline containing the final result after the right-fold reduction.
    */
   public final <B> Trampoline<B> foldRightC(final F2<A, B, B> f, final B b) {
-    return Trampoline.suspend(() -> isEmpty() ? Trampoline.pure(b) : tail().foldRightC(f, b).map(f.f(head())));
+    return Trampoline.suspend(new P1<Trampoline<B>>() {
+      public Trampoline<B> _1() {
+        return isEmpty() ? Trampoline.pure(b) : tail().foldRightC(f, b).map(f.f(head()));
+      }
+    });
   }
 
   /**
@@ -672,7 +700,15 @@ public abstract class List<A> implements Iterable<A> {
    * @return A new list that is the reverse of this one.
    */
   public final List<A> reverse() {
-    return foldLeft(as -> a -> cons(a, as), List.<A>nil());
+    return foldLeft(new F<List<A>, F<A, List<A>>>() {
+      public F<A, List<A>> f(final List<A> as) {
+        return new F<A, List<A>>() {
+          public List<A> f(final A a) {
+            return cons(a, as);
+          }
+        };
+      }
+    }, List.<A>nil());
   }
 
   /**
@@ -735,7 +771,15 @@ public abstract class List<A> implements Iterable<A> {
     int c = 0;
     for (List<A> xs = this; xs.isNotEmpty(); xs = xs.tail()) {
       final A h = xs.head();
-      s = c < i ? s.map1((final List<A> as) -> as.snoc(h)) : s.map2((final List<A> as) -> as.snoc(h));
+      s = c < i ? s.map1(new F<List<A>, List<A>>() {
+        public List<A> f(final List<A> as) {
+          return as.snoc(h);
+        }
+      }) : s.map2(new F<List<A>, List<A>>() {
+        public List<A> f(final List<A> as) {
+          return as.snoc(h);
+        }
+      });
       c++;
     }
 
@@ -754,7 +798,11 @@ public abstract class List<A> implements Iterable<A> {
       throw error("Can't create list partitions shorter than 1 element long.");
     if (isEmpty())
       throw error("Partition on empty list.");
-    return unfold(as -> as.isEmpty() ? Option.<P2<List<A>, List<A>>>none() : some(as.splitAt(n)), this);
+    return unfold(new F<List<A>, Option<P2<List<A>, List<A>>>>() {
+      public Option<P2<List<A>, List<A>>> f(final List<A> as) {
+        return as.isEmpty() ? Option.<P2<List<A>, List<A>>>none() : some(as.splitAt(n));
+      }
+    }, this);
   }
 
   /**
@@ -864,7 +912,11 @@ public abstract class List<A> implements Iterable<A> {
    * @return A function that zips the given lists to produce a list of pairs.
    */
   public static <A, B> F<List<A>, F<List<B>, List<P2<A, B>>>> zip() {
-    return curry((final List<A> as, final List<B> bs) -> as.zip(bs));
+    return curry(new F2<List<A>, List<B>, List<P2<A, B>>>() {
+      public List<P2<A, B>> f(final List<A> as, final List<B> bs) {
+        return as.zip(bs);
+      }
+    });
   }
 
   /**
@@ -873,7 +925,15 @@ public abstract class List<A> implements Iterable<A> {
    * @return A new list with the same length as this list.
    */
   public final List<P2<A, Integer>> zipIndex() {
-    return zipWith(range(0, length()), a -> i -> p(a, i));
+    return zipWith(range(0, length()), new F<A, F<Integer, P2<A, Integer>>>() {
+      public F<Integer, P2<A, Integer>> f(final A a) {
+        return new F<Integer, P2<A, Integer>>() {
+          public P2<A, Integer> f(final Integer i) {
+            return p(a, i);
+          }
+        };
+      }
+    });
   }
 
   /**
@@ -966,7 +1026,11 @@ public abstract class List<A> implements Iterable<A> {
    * @return A list without duplicates.
    */
   public final List<A> nub(final Equal<A> eq) {
-    return isEmpty() ? this : cons(head(), tail().filter((F<A, Boolean>) a -> !eq.eq(a, head())).nub(eq));
+    return isEmpty() ? this : cons(head(), tail().filter(new F<A, Boolean>() {
+      public Boolean f(final A a) {
+        return !eq.eq(a, head());
+      }
+    }).nub(eq));
   }
 
   /**
@@ -986,7 +1050,11 @@ public abstract class List<A> implements Iterable<A> {
    * @return A function that gets the head of a given list.
    */
   public static <A> F<List<A>, A> head_() {
-    return list -> list.head();
+    return new F<List<A>, A>() {
+      public A f(final List<A> list) {
+        return list.head();
+      }
+    };
   }
 
   /**
@@ -995,7 +1063,11 @@ public abstract class List<A> implements Iterable<A> {
    * @return A function that gets the tail of a given list.
    */
   public static <A> F<List<A>, List<A>> tail_() {
-    return list -> list.tail();
+    return new F<List<A>, List<A>>() {
+      public List<A> f(final List<A> list) {
+        return list.tail();
+      }
+    };
   }
 
   /**
@@ -1028,15 +1100,19 @@ public abstract class List<A> implements Iterable<A> {
    * @return A possible list of values after binding through the Option monad.
    */
   public final <B> Option<List<B>> mapMOption(final F<A, Option<B>> f) {
-    return foldRight((a, bs) -> f.f(a).bind(new F<B, Option<List<B>>>() {
-      public Option<List<B>> f(final B b) {
-        return bs.map(new F<List<B>, List<B>>() {
-          public List<B> f(final List<B> bbs) {
-            return bbs.cons(b);
+    return foldRight(new F2<A, Option<List<B>>, Option<List<B>>>() {
+      public Option<List<B>> f(final A a, final Option<List<B>> bs) {
+        return f.f(a).bind(new F<B, Option<List<B>>>() {
+          public Option<List<B>> f(final B b) {
+            return bs.map(new F<List<B>, List<B>>() {
+              public List<B> f(final List<B> bbs) {
+                return bbs.cons(b);
+              }
+            });
           }
         });
       }
-    }), Option.<List<B>>some(List.<B>nil()));
+    }, Option.<List<B>>some(List.<B>nil()));
   }
 
   /**
@@ -1046,11 +1122,19 @@ public abstract class List<A> implements Iterable<A> {
    * @return A list of values in the Trampoline monad.
    */
   public final <B> Trampoline<List<B>> mapMTrampoline(final F<A, Trampoline<B>> f) {
-    return foldRight((a, bs) -> f.f(a).bind(b -> bs.map(new F<List<B>, List<B>>() {
-        public List<B> f(final List<B> bbs) {
-            return bbs.cons(b);
-        }
-    })), Trampoline.<List<B>>pure(List.<B>nil()));
+    return foldRight(new F2<A, Trampoline<List<B>>, Trampoline<List<B>>>() {
+      public Trampoline<List<B>> f(final A a, final Trampoline<List<B>> bs) {
+        return f.f(a).bind(new F<B, Trampoline<List<B>>>() {
+          public Trampoline<List<B>> f(final B b) {
+            return bs.map(new F<List<B>, List<B>>() {
+              public List<B> f(final List<B> bbs) {
+                return bbs.cons(b);
+              }
+            });
+          }
+        });
+      }
+    }, Trampoline.<List<B>>pure(List.<B>nil()));
   }
 
   /**
@@ -1138,7 +1222,11 @@ public abstract class List<A> implements Iterable<A> {
    * @return A function that gets the length of a given list.
    */
   public static <A> F<List<A>, Integer> length_() {
-    return a -> a.length();
+    return new F<List<A>, Integer>() {
+      public Integer f(final List<A> a) {
+        return a.length();
+      }
+    };
   }
 
   /**
@@ -1246,7 +1334,7 @@ public abstract class List<A> implements Iterable<A> {
    * @return An empty list.
    */
   public static <A> List<A> nil() {
-    return new Nil<>();
+    return new Nil<A>();
   }
 
   /**
@@ -1255,7 +1343,15 @@ public abstract class List<A> implements Iterable<A> {
    * @return A function that prepends (cons) an element to a list to produce a new list.
    */
   public static <A> F<A, F<List<A>, List<A>>> cons() {
-    return a -> tail -> cons(a, tail);
+    return new F<A, F<List<A>, List<A>>>() {
+      public F<List<A>, List<A>> f(final A a) {
+        return new F<List<A>, List<A>>() {
+          public List<A> f(final List<A> tail) {
+            return cons(a, tail);
+          }
+        };
+      }
+    };
   }
 
   /**
@@ -1265,7 +1361,11 @@ public abstract class List<A> implements Iterable<A> {
    * @return A function that prepends a value to the given list.
    */
   public static <A> F<A, List<A>> cons(final List<A> tail) {
-    return a -> tail.cons(a);
+    return new F<A, List<A>>() {
+      public List<A> f(final A a) {
+        return tail.cons(a);
+      }
+    };
   }
 
   /**
@@ -1275,7 +1375,11 @@ public abstract class List<A> implements Iterable<A> {
    * @return A function that prepends the given value to a list.
    */
   public static <A> F<List<A>, List<A>> cons_(final A a) {
-    return as -> as.cons(a);
+    return new F<List<A>, List<A>>() {
+      public List<A> f(final List<A> as) {
+        return as.cons(a);
+      }
+    };
   }
 
   /**
@@ -1286,7 +1390,7 @@ public abstract class List<A> implements Iterable<A> {
    * @return The list with the given element prepended.
    */
   public static <A> List<A> cons(final A head, final List<A> tail) {
-    return new Cons<>(head, tail);
+    return new Cons<A>(head, tail);
   }
 
   /**
@@ -1295,7 +1399,11 @@ public abstract class List<A> implements Iterable<A> {
    * @return A function that determines whether a given list is empty.
    */
   public static <A> F<List<A>, Boolean> isEmpty_() {
-    return as -> as.isEmpty();
+    return new F<List<A>, Boolean>() {
+      public Boolean f(final List<A> as) {
+        return as.isEmpty();
+      }
+    };
   }
 
   /**
@@ -1304,7 +1412,11 @@ public abstract class List<A> implements Iterable<A> {
    * @return A function that determines whether a given list is not empty.
    */
   public static <A> F<List<A>, Boolean> isNotEmpty_() {
-    return as -> as.isNotEmpty();
+    return new F<List<A>, Boolean>() {
+      public Boolean f(final List<A> as) {
+        return as.isNotEmpty();
+      }
+    };
   }
 
   /**
@@ -1324,7 +1436,11 @@ public abstract class List<A> implements Iterable<A> {
    * @return A function that joins a list of lists using a bind operation.
    */
   public static <A> F<List<List<A>>, List<A>> join() {
-    return as -> join(as);
+    return new F<List<List<A>>, List<A>>() {
+      public List<A> f(final List<List<A>> as) {
+        return join(as);
+      }
+    };
   }
 
   /**
@@ -1404,7 +1520,11 @@ public abstract class List<A> implements Iterable<A> {
    * @return A first-class <code>fromString</code>.
    */
   public static F<String, List<Character>> fromString() {
-    return s -> fromString(s);
+    return new F<String, List<Character>>() {
+      public List<Character> f(final String s) {
+        return fromString(s);
+      }
+    };
   }
 
   /**
@@ -1417,9 +1537,11 @@ public abstract class List<A> implements Iterable<A> {
   public static String asString(final List<Character> cs) {
     final StringBuilder sb = new StringBuilder();
 
-    cs.foreach(c -> {
-      sb.append(c);
-      return unit();
+    cs.foreach(new F<Character, Unit>() {
+      public Unit f(final Character c) {
+        sb.append(c);
+        return unit();
+      }
     });
     return sb.toString();
   }
@@ -1430,7 +1552,11 @@ public abstract class List<A> implements Iterable<A> {
    * @return A first-class <code>asString</code>.
    */
   public static F<List<Character>, String> asString() {
-    return cs -> asString(cs);
+    return new F<List<Character>, String>() {
+      public String f(final List<Character> cs) {
+        return asString(cs);
+      }
+    };
   }
 
   /**
@@ -1455,8 +1581,16 @@ public abstract class List<A> implements Iterable<A> {
    */
   public static <A> List<A> iterateWhile(final F<A, A> f, final F<A, Boolean> p, final A a) {
     return unfold(
-            (final A o) -> Option.iif(p2 -> p.f(o), P.p(o, f.f(o)))
-            , a);
+        new F<A, Option<P2<A, A>>>() {
+          public Option<P2<A, A>> f(final A o) {
+            return Option.iif(new F<P2<A, A>, Boolean>() {
+              public Boolean f(final P2<A, A> p2) {
+                return p.f(o);
+              }
+            }, P.p(o, f.f(o)));
+          }
+        }
+        , a);
   }
 
   /**
@@ -1468,7 +1602,11 @@ public abstract class List<A> implements Iterable<A> {
    * @return An associated value with the given key in the list of pairs.
    */
   public static <A, B> Option<B> lookup(final Equal<A> e, final List<P2<A, B>> x, final A a) {
-    return x.find(p -> e.eq(p._1(), a)).map(P2.<A, B>__2());
+    return x.find(new F<P2<A, B>, Boolean>() {
+      public Boolean f(final P2<A, B> p) {
+        return e.eq(p._1(), a);
+      }
+    }).map(P2.<A, B>__2());
   }
 
   /**
@@ -1478,7 +1616,11 @@ public abstract class List<A> implements Iterable<A> {
    * @return A partially applied version of {@link #lookup(Equal , List, Object)}.
    */
   public static <A, B> F2<List<P2<A, B>>, A, Option<B>> lookup(final Equal<A> e) {
-    return (x, a) -> lookup(e, x, a);
+    return new F2<List<P2<A, B>>, A, Option<B>>() {
+      public Option<B> f(final List<P2<A, B>> x, final A a) {
+        return lookup(e, x, a);
+      }
+    };
   }
 
   /**
@@ -1487,7 +1629,11 @@ public abstract class List<A> implements Iterable<A> {
    * @return The bind function for lists.
    */
   public static <A, B> F<F<A, List<B>>, F<List<A>, List<B>>> bind_() {
-    return curry((final F<A, List<B>> f, final List<A> as) -> as.bind(f));
+    return curry(new F2<F<A, List<B>>, List<A>, List<B>>() {
+      public List<B> f(final F<A, List<B>> f, final List<A> as) {
+        return as.bind(f);
+      }
+    });
   }
 
   /**
@@ -1496,7 +1642,11 @@ public abstract class List<A> implements Iterable<A> {
    * @return The map function for lists.
    */
   public static <A, B> F<F<A, B>, F<List<A>, List<B>>> map_() {
-    return curry((final F<A, B> f, final List<A> as) -> as.map(f));
+    return curry(new F2<F<A, B>, List<A>, List<B>>() {
+      public List<B> f(final F<A, B> f, final List<A> as) {
+        return as.map(f);
+      }
+    });
   }
 
   /**
@@ -1530,7 +1680,11 @@ public abstract class List<A> implements Iterable<A> {
    * @return First-class version of take.
    */
   public static <A> F<Integer, F<List<A>, List<A>>> take() {
-    return curry((final Integer n, final List<A> as) -> as.take(n));
+    return curry(new F2<Integer, List<A>, List<A>>() {
+      public List<A> f(final Integer n, final List<A> as) {
+        return as.take(n);
+      }
+    });
   }
 
   /**
@@ -1577,7 +1731,7 @@ public abstract class List<A> implements Iterable<A> {
       if (exported)
         copy();
 
-      final Cons<A> t = new Cons<>(a, List.<A>nil());
+      final Cons<A> t = new Cons<A>(a, List.<A>nil());
 
       if (tail == null)
         start = t;
@@ -1628,7 +1782,7 @@ public abstract class List<A> implements Iterable<A> {
      * @return An empty buffer.
      */
     public static <A> Buffer<A> empty() {
-      return new Buffer<>();
+      return new Buffer<A>();
     }
 
     /**
@@ -1638,7 +1792,7 @@ public abstract class List<A> implements Iterable<A> {
      * @return A buffer from the given list.
      */
     public static <A> Buffer<A> fromList(final List<A> as) {
-      final Buffer<A> b = new Buffer<>();
+      final Buffer<A> b = new Buffer<A>();
 
       for (List<A> xs = as; xs.isNotEmpty(); xs = xs.tail())
         b.snoc(xs.head());
@@ -1711,6 +1865,10 @@ public abstract class List<A> implements Iterable<A> {
      * @return a String representation of the list
      */
     @Override public String toString() {
-        return Show.listShow( Show.<A>anyShow() ).show( this ).foldLeft((s, c) -> s + c, "" );
+        return Show.listShow( Show.<A>anyShow() ).show( this ).foldLeft( new F2<String, Character, String>() {
+            @Override public String f( final String s, final Character c ) {
+                return s + c;
+            }
+        }, "" );
     }
 }

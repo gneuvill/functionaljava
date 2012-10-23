@@ -71,7 +71,11 @@ public final class Visitor {
    * given default.
    */
   public static <A, B> B nullableVisitor(final List<F<A, B>> visitors, final P1<B> def, final A value) {
-    return visitor(visitors.map((F<F<A, B>, F<A, Option<B>>>) k -> compose(Option.<B>fromNull(), k)), def, value);
+    return visitor(visitors.map(new F<F<A, B>, F<A, Option<B>>>() {
+      public F<A, Option<B>> f(final F<A, B> k) {
+        return compose(Option.<B>fromNull(), k);
+      }
+    }), def, value);
   }
 
   /**
@@ -83,7 +87,11 @@ public final class Visitor {
    * @return A function that can be applied to a default value (there is no association) and an associated key.
    */
   public static <A, B> F<B, F<A, B>> association(final List<P2<A, B>> x, final Equal<A> eq) {
-    return curry((final B def, final A a) -> lookup(eq, x, a).orSome(def));
+    return curry(new F2<B, A, B>() {
+      public B f(final B def, final A a) {
+        return lookup(eq, x, a).orSome(def);
+      }
+    });
   }
 
   /**
@@ -95,6 +103,10 @@ public final class Visitor {
    * @return A function that can be applied to a default value (there is no association) and an associated key.
    */
   public static <A, B> F<P1<B>, F<A, B>> associationLazy(final List<P2<A, B>> x, final Equal<A> eq) {
-    return curry((final P1<B> def, final A a) -> lookup(eq, x, a).orSome(def));
+    return curry(new F2<P1<B>, A, B>() {
+      public B f(final P1<B> def, final A a) {
+        return lookup(eq, x, a).orSome(def);
+      }
+    });
   }
 }

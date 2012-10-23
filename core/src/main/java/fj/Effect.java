@@ -17,9 +17,11 @@ public abstract class Effect<A> {
    * @return The function using the given effect.
    */
   public final F<A, Unit> e() {
-    return a -> {
-      e(a);
-      return unit();
+    return new F<A, Unit>() {
+      public Unit f(final A a) {
+        e(a);
+        return unit();
+      }
     };
   }
 

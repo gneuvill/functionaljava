@@ -33,7 +33,7 @@ public final class HashSet<A> implements Iterable<A> {
    * @param h The hashing strategy.
    */
   public HashSet(final Equal<A> e, final Hash<A> h) {
-    m = new HashMap<>(e, h);
+    m = new HashMap<A, Unit>(e, h);
   }
 
   /**
@@ -44,7 +44,7 @@ public final class HashSet<A> implements Iterable<A> {
    * @param initialCapacity The initial capacity.
    */
   public HashSet(final Equal<A> e, final Hash<A> h, final int initialCapacity) {
-    m = new HashMap<>(e, h, initialCapacity);
+    m = new HashMap<A, Unit>(e, h, initialCapacity);
   }
 
   /**
@@ -56,7 +56,7 @@ public final class HashSet<A> implements Iterable<A> {
    * @param loadFactor      The load factor.
    */
   public HashSet(final Equal<A> e, final Hash<A> h, final int initialCapacity, final float loadFactor) {
-    m = new HashMap<>(e, h, initialCapacity, loadFactor);
+    m = new HashMap<A, Unit>(e, h, initialCapacity, loadFactor);
   }
 
   /**

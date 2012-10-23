@@ -28,7 +28,7 @@ public final class Arg<T> {
    * @return A new argument.
    */
   public static <T> Arg<T> arg(final T value, final int shrinks) {
-    return new Arg<>(value, shrinks);
+    return new Arg<T>(value, shrinks);
   }
 
   /**
@@ -52,6 +52,10 @@ public final class Arg<T> {
   /**
    * The rendering of an argument (uses {@link Object#toString()} for the argument value).
    */
-  public static final Show<Arg<?>> argShow = showS((final Arg<?> arg) -> anyShow().showS(arg.value) +
-      (arg.shrinks > 0 ? " (" + arg.shrinks + " shrink" + (arg.shrinks == 1 ? "" : 's') + ')' : ""));
+  public static final Show<Arg<?>> argShow = showS(new F<Arg<?>, String>() {
+    public String f(final Arg<?> arg) {
+      return anyShow().showS(arg.value) +
+          (arg.shrinks > 0 ? " (" + arg.shrinks + " shrink" + (arg.shrinks == 1 ? "" : 's') + ')' : "");
+    }
+  });
 }

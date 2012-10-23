@@ -10,7 +10,6 @@ import fj.P;
 import fj.P1;
 import fj.P2;
 import fj.P3;
-import fj.Product1;
 import fj.Show;
 import fj.function.Integers;
 
@@ -54,7 +53,7 @@ public final class Zipper<A> implements Iterable<Zipper<A>> {
    * @return a new Zipper with the given streams before and after the focus, and the given focused item.
    */
   public static <A> Zipper<A> zipper(final Stream<A> left, final A focus, final Stream<A> right) {
-    return new Zipper<>(left, focus, right);
+    return new Zipper<A>(left, focus, right);
   }
 
   /**
@@ -65,7 +64,7 @@ public final class Zipper<A> implements Iterable<Zipper<A>> {
    * @return a new Zipper created from the given triple.
    */
   public static <A> Zipper<A> zipper(final P3<Stream<A>, A, Stream<A>> p) {
-    return new Zipper<>(p._1(), p._2(), p._3());
+    return new Zipper<A>(p._1(), p._2(), p._3());
   }
 
   /**
@@ -96,7 +95,11 @@ public final class Zipper<A> implements Iterable<Zipper<A>> {
    * @return A first-class function that yields the product-3 representation of a given Zipper.
    */
   public static <A> F<Zipper<A>, P3<Stream<A>, A, Stream<A>>> p_() {
-    return a -> a.p();
+    return new F<Zipper<A>, P3<Stream<A>, A, Stream<A>>>() {
+      public P3<Stream<A>, A, Stream<A>> f(final Zipper<A> a) {
+        return a.p();
+      }
+    };
   }
 
   /**
@@ -152,7 +155,7 @@ public final class Zipper<A> implements Iterable<Zipper<A>> {
   public <B> B foldRight(final F<A, F<B, B>> f, final B z) {
     return left.foldLeft(flip(f),
                          right.cons(focus).foldRight(compose(
-                             Function.<P1<B>, B, B>andThen().f(Product1.<B>__1()), f), z));
+                             Function.<P1<B>, B, B>andThen().f(P1.<B>__1()), f), z));
   }
 
   /**
@@ -259,7 +262,11 @@ public final class Zipper<A> implements Iterable<Zipper<A>> {
    * @return A function that moves the given zipper's focus to the next element.
    */
   public static <A> F<Zipper<A>, Option<Zipper<A>>> next_() {
-    return as -> as.next();
+    return new F<Zipper<A>, Option<Zipper<A>>>() {
+      public Option<Zipper<A>> f(final Zipper<A> as) {
+        return as.next();
+      }
+    };
   }
 
   /**
@@ -268,7 +275,11 @@ public final class Zipper<A> implements Iterable<Zipper<A>> {
    * @return A function that moves the given zipper's focus to the previous element.
    */
   public static <A> F<Zipper<A>, Option<Zipper<A>>> previous_() {
-    return as -> as.previous();
+    return new F<Zipper<A>, Option<Zipper<A>>>() {
+      public Option<Zipper<A>> f(final Zipper<A> as) {
+        return as.previous();
+      }
+    };
   }
 
   /**
@@ -369,9 +380,17 @@ public final class Zipper<A> implements Iterable<Zipper<A>> {
    */
   public Zipper<Zipper<A>> positions() {
     final Stream<Zipper<A>> left = Stream.unfold(
-            (final Zipper<A> p) -> p.previous().map(join(P.<Zipper<A>, Zipper<A>>p2())), this);
+        new F<Zipper<A>, Option<P2<Zipper<A>, Zipper<A>>>>() {
+          public Option<P2<Zipper<A>, Zipper<A>>> f(final Zipper<A> p) {
+            return p.previous().map(join(P.<Zipper<A>, Zipper<A>>p2()));
+          }
+        }, this);
     final Stream<Zipper<A>> right = Stream.unfold(
-            (final Zipper<A> p) -> p.next().map(join(P.<Zipper<A>, Zipper<A>>p2())), this);
+        new F<Zipper<A>, Option<P2<Zipper<A>, Zipper<A>>>>() {
+          public Option<P2<Zipper<A>, Zipper<A>>> f(final Zipper<A> p) {
+            return p.next().map(join(P.<Zipper<A>, Zipper<A>>p2()));
+          }
+        }, this);
 
     return zipper(left, this, right);
   }
@@ -424,7 +443,11 @@ public final class Zipper<A> implements Iterable<Zipper<A>> {
    * @return A function that moves the focus of the given zipper to the given index.
    */
   public static <A> F<Integer, F<Zipper<A>, Option<Zipper<A>>>> move() {
-    return curry((final Integer i, final Zipper<A> a) -> a.move(i));
+    return curry(new F2<Integer, Zipper<A>, Option<Zipper<A>>>() {
+      public Option<Zipper<A>> f(final Integer i, final Zipper<A> a) {
+        return a.move(i);
+      }
+    });
   }
 
   /**
@@ -438,7 +461,11 @@ public final class Zipper<A> implements Iterable<Zipper<A>> {
       return some(this);
     else {
       final Zipper<Zipper<A>> ps = positions();
-      return ps.lefts().interleave(ps.rights()).find(zipper -> p.f(zipper.focus()));
+      return ps.lefts().interleave(ps.rights()).find(new F<Zipper<A>, Boolean>() {
+        public Boolean f(final Zipper<A> zipper) {
+          return p.f(zipper.focus());
+        }
+      });
     }
   }
 

@@ -23,7 +23,7 @@ public final class MakeTree<V, A> {
    * @return The empty tree.
    */
   public FingerTree<V, A> empty() {
-    return new Empty<>(m);
+    return new Empty<V, A>(m);
   }
 
   /**
@@ -33,7 +33,7 @@ public final class MakeTree<V, A> {
    * @return A tree with the given value as the single element.
    */
   public FingerTree<V, A> single(final A a) {
-    return new Single<>(m, a);
+    return new Single<V, A>(m, a);
   }
 
   /**
@@ -61,7 +61,7 @@ public final class MakeTree<V, A> {
    */
   public FingerTree<V, A> deep(final V v, final Digit<V, A> prefix, final FingerTree<V, Node<V, A>> middle,
                                final Digit<V, A> suffix) {
-    return new Deep<>(m, v, prefix, middle, suffix);
+    return new Deep<V, A>(m, v, prefix, middle, suffix);
   }
 
   // Digit constructors
@@ -73,7 +73,7 @@ public final class MakeTree<V, A> {
    * @return A digit of the given element.
    */
   public One<V, A> one(final A a) {
-    return new One<>(m, a);
+    return new One<V, A>(m, a);
   }
 
   /**
@@ -84,7 +84,7 @@ public final class MakeTree<V, A> {
    * @return A digit of the given elements.
    */
   public Two<V, A> two(final A a, final A b) {
-    return new Two<>(m, v(a, b));
+    return new Two<V, A>(m, v(a, b));
   }
 
   /**
@@ -96,7 +96,7 @@ public final class MakeTree<V, A> {
    * @return A digit of the given elements.
    */
   public Three<V, A> three(final A a, final A b, final A c) {
-    return new Three<>(m, v(a, b, c));
+    return new Three<V, A>(m, v(a, b, c));
   }
 
   /**
@@ -109,7 +109,7 @@ public final class MakeTree<V, A> {
    * @return A digit of the given elements.
    */
   public Four<V, A> four(final A a, final A b, final A c, final A d) {
-    return new Four<>(m, v(a, b, c, d));
+    return new Four<V, A>(m, v(a, b, c, d));
   }
 
   // Node constructors
@@ -122,7 +122,7 @@ public final class MakeTree<V, A> {
    * @return A new binary tree node.
    */
   public Node2<V, A> node2(final A a, final A b) {
-    return new Node2<>(m, v(a, b));
+    return new Node2<V, A>(m, v(a, b));
   }
 
   /**
@@ -134,7 +134,7 @@ public final class MakeTree<V, A> {
    * @return A new trinary tree node.
    */
   public Node3<V, A> node3(final A a, final A b, final A c) {
-    return new Node3<>(m, v(a, b, c));
+    return new Node3<V, A>(m, v(a, b, c));
   }
 
   /**
@@ -144,7 +144,7 @@ public final class MakeTree<V, A> {
    * @return A new binary tree node.
    */
   public Node2<V, A> node2(final V2<A> v) {
-    return new Node2<>(m, v);
+    return new Node2<V, A>(m, v);
   }
 
   /**
@@ -154,7 +154,7 @@ public final class MakeTree<V, A> {
    * @return A new trinary tree node.
    */
   public Node3<V, A> node3(final V3<A> v) {
-    return new Node3<>(m, v);
+    return new Node3<V, A>(m, v);
   }
 
 }

@@ -284,14 +284,16 @@ public final class CheckResult {
    *         the result is a failure (falsified, property exception or generator exception).
    */
   public static Show<CheckResult> summaryEx(final Show<Arg<?>> sa) {
-    return showS((final CheckResult r) -> {
-      final String s = summary(sa).show(r).toString();
-      if (r.isProven() || r.isPassed() || r.isExhausted())
-        return s;
-      else if (r.isFalsified() || r.isPropException() || r.isGenException())
-        throw new Error(s);
-      else
-        throw decons(r.getClass());
+    return showS(new F<CheckResult, String>() {
+      public String f(final CheckResult r) {
+        final String s = summary(sa).show(r).toString();
+        if (r.isProven() || r.isPassed() || r.isExhausted())
+          return s;
+        else if (r.isFalsified() || r.isPropException() || r.isGenException())
+          throw new Error(s);
+        else
+          throw decons(r.getClass());
+      }
     });
   }
 }

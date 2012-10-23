@@ -529,7 +529,11 @@ public abstract class P8<A, B, C, D, E, F, G, H> {
    * @return A function that returns the first element of a product.
    */
   public static <A, B, C, D, E, F$, G, H> fj.F<P8<A, B, C, D, E, F$, G, H>, A> __1() {
-    return p -> p._1();
+    return new fj.F<P8<A, B, C, D, E, F$, G, H>, A>() {
+      public A f(final P8<A, B, C, D, E, F$, G, H> p) {
+        return p._1();
+      }
+    };
   }
 
   /**
@@ -538,7 +542,11 @@ public abstract class P8<A, B, C, D, E, F, G, H> {
    * @return A function that returns the second element of a product.
    */
   public static <A, B, C, D, E, F$, G, H> fj.F<P8<A, B, C, D, E, F$, G, H>, B> __2() {
-    return p -> p._2();
+    return new fj.F<P8<A, B, C, D, E, F$, G, H>, B>() {
+      public B f(final P8<A, B, C, D, E, F$, G, H> p) {
+        return p._2();
+      }
+    };
   }
 
   /**
@@ -547,7 +555,11 @@ public abstract class P8<A, B, C, D, E, F, G, H> {
    * @return A function that returns the third element of a product.
    */
   public static <A, B, C, D, E, F$, G, H> fj.F<P8<A, B, C, D, E, F$, G, H>, C> __3() {
-    return p -> p._3();
+    return new fj.F<P8<A, B, C, D, E, F$, G, H>, C>() {
+      public C f(final P8<A, B, C, D, E, F$, G, H> p) {
+        return p._3();
+      }
+    };
   }
 
   /**
@@ -556,7 +568,11 @@ public abstract class P8<A, B, C, D, E, F, G, H> {
    * @return A function that returns the fourth element of a product.
    */
   public static <A, B, C, D, E, F$, G, H> fj.F<P8<A, B, C, D, E, F$, G, H>, D> __4() {
-    return p -> p._4();
+    return new fj.F<P8<A, B, C, D, E, F$, G, H>, D>() {
+      public D f(final P8<A, B, C, D, E, F$, G, H> p) {
+        return p._4();
+      }
+    };
   }
 
   /**
@@ -565,7 +581,11 @@ public abstract class P8<A, B, C, D, E, F, G, H> {
    * @return A function that returns the fifth element of a product.
    */
   public static <A, B, C, D, E, F$, G, H> fj.F<P8<A, B, C, D, E, F$, G, H>, E> __5() {
-    return p -> p._5();
+    return new fj.F<P8<A, B, C, D, E, F$, G, H>, E>() {
+      public E f(final P8<A, B, C, D, E, F$, G, H> p) {
+        return p._5();
+      }
+    };
   }
 
   /**
@@ -574,7 +594,11 @@ public abstract class P8<A, B, C, D, E, F, G, H> {
    * @return A function that returns the sixth element of a product.
    */
   public static <A, B, C, D, E, F$, G, H> fj.F<P8<A, B, C, D, E, F$, G, H>, F$> __6() {
-    return p -> p._6();
+    return new fj.F<P8<A, B, C, D, E, F$, G, H>, F$>() {
+      public F$ f(final P8<A, B, C, D, E, F$, G, H> p) {
+        return p._6();
+      }
+    };
   }
 
   /**
@@ -583,7 +607,11 @@ public abstract class P8<A, B, C, D, E, F, G, H> {
    * @return A function that returns the seventh element of a product.
    */
   public static <A, B, C, D, E, F$, G, H> fj.F<P8<A, B, C, D, E, F$, G, H>, G> __7() {
-    return p -> p._7();
+    return new fj.F<P8<A, B, C, D, E, F$, G, H>, G>() {
+      public G f(final P8<A, B, C, D, E, F$, G, H> p) {
+        return p._7();
+      }
+    };
   }
 
   /**
@@ -592,6 +620,10 @@ public abstract class P8<A, B, C, D, E, F, G, H> {
    * @return A function that returns the eighth element of a product.
    */
   public static <A, B, C, D, E, F$, G, H> fj.F<P8<A, B, C, D, E, F$, G, H>, H> __8() {
-    return p -> p._8();
+    return new fj.F<P8<A, B, C, D, E, F$, G, H>, H>() {
+      public H f(final P8<A, B, C, D, E, F$, G, H> p) {
+        return p._8();
+      }
+    };
   }
 }

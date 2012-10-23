@@ -35,11 +35,13 @@ public final class LazyString implements CharSequence {
    * @return A lazy string with the characters from the given string.
    */
   public static LazyString str(final String s) {
-    return new LazyString(Stream.unfold(o -> {
-      final String s = o._1();
-      final int n = o._2();
-      final Option<P2<Character, P2<String, Integer>>> none = none();
-      return s.length() <= n ? none : some(p(s.charAt(n), p(s, n + 1)));
+    return new LazyString(Stream.unfold(new F<P2<String, Integer>, Option<P2<Character, P2<String, Integer>>>>() {
+      public Option<P2<Character, P2<String, Integer>>> f(final P2<String, Integer> o) {
+        final String s = o._1();
+        final int n = o._2();
+        final Option<P2<Character, P2<String, Integer>>> none = none();
+        return s.length() <= n ? none : some(p(s.charAt(n), p(s, n + 1)));
+      }
     }, p(s, 0)));
   }
 
@@ -166,7 +168,11 @@ public final class LazyString implements CharSequence {
    * @return A function that yields true if the first argument is a prefix of the second.
    */
   public static F<LazyString, F<LazyString, Boolean>> startsWith() {
-    return curry((final LazyString needle, final LazyString haystack) -> haystack.startsWith(needle));
+    return curry(new F2<LazyString, LazyString, Boolean>() {
+      public Boolean f(final LazyString needle, final LazyString haystack) {
+        return haystack.startsWith(needle);
+      }
+    });
   }
 
   /**
@@ -245,7 +251,11 @@ public final class LazyString implements CharSequence {
     final Stream<Character> findIt = s.dropWhile(p);
     final P2<Stream<Character>, Stream<Character>> ws = findIt.split(p);
     return findIt.isEmpty() ? Stream.<LazyString>nil()
-                            : Stream.cons(fromStream(ws._1()), () -> fromStream(ws._2()).split(p));
+                            : Stream.cons(fromStream(ws._1()), new P1<Stream<LazyString>>() {
+                              public Stream<LazyString> _1() {
+                                return fromStream(ws._2()).split(p);
+                              }
+                            });
   }
 
   /**
@@ -300,19 +310,31 @@ public final class LazyString implements CharSequence {
    * First-class conversion from lazy strings to streams.
    */
   public static final F<LazyString, Stream<Character>> toStream =
-          string -> string.toStream();
+      new F<LazyString, Stream<Character>>() {
+        public Stream<Character> f(final LazyString string) {
+          return string.toStream();
+        }
+      };
 
   /**
    * First-class conversion from lazy strings to String.
    */
   public static final F<LazyString, String> toString =
-          string -> string.toString();
+      new F<LazyString, String>() {
+        public String f(final LazyString string) {
+          return string.toString();
+        }
+      };
 
   /**
    * First-class conversion from character streams to lazy strings.
    */
   public static final F<Stream<Character>, LazyString> fromStream =
-          s -> fromStream(s);
+      new F<Stream<Character>, LazyString>() {
+        public LazyString f(final Stream<Character> s) {
+          return fromStream(s);
+        }
+      };
 
   private static final Equal<Stream<Character>> eqS = streamEqual(charEqual);
 

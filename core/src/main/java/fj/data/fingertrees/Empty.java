@@ -13,7 +13,7 @@ public final class Empty<V, A> extends FingerTree<V, A> {
   }
 
   @Override public FingerTree<V, A> cons(final A a) {
-    return new Single<>(measured(), a);
+    return new Single<V, A>(measured(), a);
   }
 
   @Override public FingerTree<V, A> snoc(final A a) {
@@ -45,7 +45,7 @@ public final class Empty<V, A> extends FingerTree<V, A> {
   }
 
   @Override public <B> FingerTree<V, B> map(final F<A, B> abf, final Measured<V, B> m) {
-    return new Empty<>(m);
+    return new Empty<V, B>(m);
   }
 
   /**

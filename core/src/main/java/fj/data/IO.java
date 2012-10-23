@@ -37,7 +37,12 @@ public abstract class IO<A> {
   private static final int DEFAULT_BUFFER_SIZE = 1024 * 4;
 
   public static final F<Reader, IO<Unit>> closeReader =
-          r -> closeReader(r);
+    new F<Reader, IO<Unit>>() {
+      @Override
+      public IO<Unit> f(final Reader r) {
+        return closeReader(r);
+      }
+    };
 
   public static IO<Unit> closeReader(final Reader r) {
     return new IO<Unit>() {
@@ -92,7 +97,11 @@ public abstract class IO<A> {
   }
 
   public static IO<BufferedReader> bufferedReader(final File f, final Option<Charset> encoding) {
-    return fileReader(f, encoding).map(a -> new BufferedReader(a));
+    return fileReader(f, encoding).map(new F<Reader, BufferedReader>() {
+      @Override
+      public BufferedReader f(final Reader a) {
+        return new BufferedReader(a);
+      }});
   }
 
   public static IO<Reader> fileReader(final File f, final Option<Charset> encoding) {
@@ -145,24 +154,29 @@ public abstract class IO<A> {
         }
       };
 
-    return r -> new F<IterV<String, A>, IO<IterV<String, A>>>() {
-      final F<P2<A, Input<String>>, P1<IterV<String, A>>> done = errorF("iteratee is done"); //$NON-NLS-1$
-
+    return new F<BufferedReader, F<IterV<String, A>, IO<IterV<String, A>>>>() {
       @Override
-      public IO<IterV<String, A>> f(final IterV<String, A> it) {
-        // use loop instead of recursion because of missing TCO
-        return new IO<IterV<String, A>>() {
+      public F<IterV<String, A>, IO<IterV<String, A>>> f(final BufferedReader r) {
+        return new F<IterV<String, A>, IO<IterV<String, A>>>() {
+          final F<P2<A, Input<String>>, P1<IterV<String, A>>> done = errorF("iteratee is done"); //$NON-NLS-1$
+
           @Override
-          public IterV<String, A> run() throws IOException {
-            IterV<String, A> i = it;
-            while (!isDone.f(i)) {
-              final String s = r.readLine();
-              if (s == null) { return i; }
-              final Input<String> input = Input.<String>el(s);
-              final F<F<Input<String>, IterV<String, A>>, P1<IterV<String, A>>> cont = Function.<Input<String>, IterV<String, A>>apply(input).lazy();
-              i = i.fold(done, cont)._1();
-            }
-            return i;
+          public IO<IterV<String, A>> f(final IterV<String, A> it) {
+            // use loop instead of recursion because of missing TCO
+            return new IO<Iteratee.IterV<String, A>>() {
+              @Override
+              public IterV<String, A> run() throws IOException {
+                IterV<String, A> i = it;
+                while (!isDone.f(i)) {
+                  final String s = r.readLine();
+                  if (s == null) { return i; }
+                  final Input<String> input = Input.<String>el(s);
+                  final F<F<Input<String>, IterV<String, A>>, P1<IterV<String, A>>> cont = Function.<Input<String>, IterV<String, A>>apply(input).lazy();
+                  i = i.fold(done, cont)._1();
+                }
+                return i;
+              }
+            };
           }
         };
       }
@@ -185,30 +199,35 @@ public abstract class IO<A> {
         }
       };
 
-    return r -> new F<IterV<char[], A>, IO<IterV<char[], A>>>() {
-      final F<P2<A, Input<char[]>>, P1<IterV<char[], A>>> done = errorF("iteratee is done"); //$NON-NLS-1$
-
+    return new F<Reader, F<IterV<char[], A>, IO<IterV<char[], A>>>>() {
       @Override
-      public IO<IterV<char[], A>> f(final IterV<char[], A> it) {
-        // use loop instead of recursion because of missing TCO
-        return new IO<IterV<char[], A>>() {
-          @Override
-          public IterV<char[], A> run() throws IOException {
+      public F<IterV<char[], A>, IO<IterV<char[], A>>> f(final Reader r) {
+        return new F<IterV<char[], A>, IO<IterV<char[], A>>>() {
+          final F<P2<A, Input<char[]>>, P1<IterV<char[], A>>> done = errorF("iteratee is done"); //$NON-NLS-1$
 
-            IterV<char[], A> i = it;
-            while (!isDone.f(i)) {
-              char[] buffer = new char[DEFAULT_BUFFER_SIZE];
-              final int numRead = r.read(buffer);
-              if (numRead == -1) { return i; }
-              if(numRead < buffer.length) {
-                buffer = Arrays.copyOfRange(buffer, 0, numRead);
+          @Override
+          public IO<IterV<char[], A>> f(final IterV<char[], A> it) {
+            // use loop instead of recursion because of missing TCO
+            return new IO<Iteratee.IterV<char[], A>>() {
+              @Override
+              public IterV<char[], A> run() throws IOException {
+                
+                IterV<char[], A> i = it;
+                while (!isDone.f(i)) {
+                  char[] buffer = new char[DEFAULT_BUFFER_SIZE];
+                  final int numRead = r.read(buffer);
+                  if (numRead == -1) { return i; }
+                  if(numRead < buffer.length) {
+                    buffer = Arrays.copyOfRange(buffer, 0, numRead);
+                  }
+                  final Input<char[]> input = Input.<char[]>el(buffer);
+                  final F<F<Input<char[]>, IterV<char[], A>>, P1<IterV<char[], A>>> cont =
+                      Function.<Input<char[]>, IterV<char[], A>>apply(input).lazy();
+                  i = i.fold(done, cont)._1();
+                }
+                return i;
               }
-              final Input<char[]> input = Input.<char[]>el(buffer);
-              final F<F<Input<char[]>, IterV<char[], A>>, P1<IterV<char[], A>>> cont =
-                  Function.<Input<char[]>, IterV<char[], A>>apply(input).lazy();
-              i = i.fold(done, cont)._1();
-            }
-            return i;
+            };
           }
         };
       }
@@ -231,32 +250,37 @@ public abstract class IO<A> {
         }
       };
 
-    return r -> new F<IterV<Character, A>, IO<IterV<Character, A>>>() {
-      final F<P2<A, Input<Character>>, IterV<Character, A>> done = errorF("iteratee is done"); //$NON-NLS-1$
-
+    return new F<Reader, F<IterV<Character, A>, IO<IterV<Character, A>>>>() {
       @Override
-      public IO<IterV<Character, A>> f(final IterV<Character, A> it) {
-        // use loop instead of recursion because of missing TCO
-        return new IO<IterV<Character, A>>() {
-          @Override
-          public IterV<Character, A> run() throws IOException {
+      public F<IterV<Character, A>, IO<IterV<Character, A>>> f(final Reader r) {
+        return new F<IterV<Character, A>, IO<IterV<Character, A>>>() {
+          final F<P2<A, Input<Character>>, IterV<Character, A>> done = errorF("iteratee is done"); //$NON-NLS-1$
 
-            IterV<Character, A> i = it;
-            while (!isDone.f(i)) {
-              char[] buffer = new char[DEFAULT_BUFFER_SIZE];
-              final int numRead = r.read(buffer);
-              if (numRead == -1) { return i; }
-              if(numRead < buffer.length) {
-                buffer = Arrays.copyOfRange(buffer, 0, numRead);
+          @Override
+          public IO<IterV<Character, A>> f(final IterV<Character, A> it) {
+            // use loop instead of recursion because of missing TCO
+            return new IO<Iteratee.IterV<Character, A>>() {
+              @Override
+              public IterV<Character, A> run() throws IOException {
+                
+                IterV<Character, A> i = it;
+                while (!isDone.f(i)) {
+                  char[] buffer = new char[DEFAULT_BUFFER_SIZE];
+                  final int numRead = r.read(buffer);
+                  if (numRead == -1) { return i; }
+                  if(numRead < buffer.length) {
+                    buffer = Arrays.copyOfRange(buffer, 0, numRead);
+                  }
+                  for(int c = 0; c < buffer.length; c++) {
+                    final Input<Character> input = Input.el(buffer[c]);
+                    final F<F<Input<Character>, IterV<Character, A>>, IterV<Character, A>> cont =
+                        Function.<Input<Character>, IterV<Character, A>>apply(input);
+                    i = i.fold(done, cont);
+                  }
+                }
+                return i;
               }
-              for(int c = 0; c < buffer.length; c++) {
-                final Input<Character> input = Input.el(buffer[c]);
-                final F<F<Input<Character>, IterV<Character, A>>, IterV<Character, A>> cont =
-                    Function.<Input<Character>, IterV<Character, A>>apply(input);
-                i = i.fold(done, cont);
-              }
-            }
-            return i;
+            };
           }
         };
       }

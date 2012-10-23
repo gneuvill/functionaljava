@@ -22,7 +22,6 @@
       <profile default="false" name="Maven default annotation processors profile" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <processorPath useClasspath="true" />
-        <module name="functionaljava" />
         <module name="functionaljava (1)" />
         <module name="functionaljava-demo" />
       </profile>

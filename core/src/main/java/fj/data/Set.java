@@ -121,20 +121,32 @@ public abstract class Set<A> implements Iterable<A> {
   public final P2<Boolean, Set<A>> update(final A a, final F<A, A> f) {
     return isEmpty()
            ? P.p(false, this)
-           : tryUpdate(a, f).either(a2 -> P.p(true, delete(a).insert(a2)), Function.<P2<Boolean, Set<A>>>identity());
+           : tryUpdate(a, f).either(new F<A, P2<Boolean, Set<A>>>() {
+             public P2<Boolean, Set<A>> f(final A a2) {
+               return P.p(true, delete(a).insert(a2));
+             }
+           }, Function.<P2<Boolean, Set<A>>>identity());
   }
 
   private Either<A, P2<Boolean, Set<A>>> tryUpdate(final A a, final F<A, A> f) {
     if (isEmpty())
       return right(P.p(false, this));
     else if (ord.isLessThan(a, head()))
-      return l().tryUpdate(a, f).right().map((F<P2<Boolean, Set<A>>, P2<Boolean, Set<A>>>) set -> set._1() ? P.p(true, (Set<A>) new Tree<>(ord, color(), set._2(), head(), r())) : set);
+      return l().tryUpdate(a, f).right().map(new F<P2<Boolean, Set<A>>, P2<Boolean, Set<A>>>() {
+        public P2<Boolean, Set<A>> f(final P2<Boolean, Set<A>> set) {
+          return set._1() ? P.p(true, (Set<A>) new Tree<A>(ord, color(), set._2(), head(), r())) : set;
+        }
+      });
     else if (ord.eq(a, head())) {
       final A h = f.f(head());
       return ord.eq(head(), h) ? Either
-          .<A, P2<Boolean, Set<A>>>right(P.p(true, (Set<A>) new Tree<>(ord, color(), l(), h, r())))
+          .<A, P2<Boolean, Set<A>>>right(P.p(true, (Set<A>) new Tree<A>(ord, color(), l(), h, r())))
                                : Either.<A, P2<Boolean, Set<A>>>left(h);
-    } else return r().tryUpdate(a, f).right().map((F<P2<Boolean, Set<A>>, P2<Boolean, Set<A>>>) set -> set._1() ? P.p(true, (Set<A>) new Tree<>(ord, color(), l(), head(), set._2())) : set);
+    } else return r().tryUpdate(a, f).right().map(new F<P2<Boolean, Set<A>>, P2<Boolean, Set<A>>>() {
+      public P2<Boolean, Set<A>> f(final P2<Boolean, Set<A>> set) {
+        return set._1() ? P.p(true, (Set<A>) new Tree<A>(ord, color(), l(), head(), set._2())) : set;
+      }
+    });
   }
 
   /**
@@ -144,7 +156,7 @@ public abstract class Set<A> implements Iterable<A> {
    * @return the empty set.
    */
   public static <A> Set<A> empty(final Ord<A> ord) {
-    return new Empty<>(ord);
+    return new Empty<A>(ord);
   }
 
   /**
@@ -164,7 +176,11 @@ public abstract class Set<A> implements Iterable<A> {
    * @return A function that returns true if the given element if a member of the given set.
    */
   public static <A> F<Set<A>, F<A, Boolean>> member() {
-    return curry((final Set<A> s, final A a) -> s.member(a));
+    return curry(new F2<Set<A>, A, Boolean>() {
+      public Boolean f(final Set<A> s, final A a) {
+        return s.member(a);
+      }
+    });
   }
 
   /**
@@ -183,21 +199,25 @@ public abstract class Set<A> implements Iterable<A> {
    * @return A function that inserts a given element into a given set.
    */
   public static <A> F<A, F<Set<A>, Set<A>>> insert() {
-    return curry((final A a, final Set<A> set) -> set.insert(a));
+    return curry(new F2<A, Set<A>, Set<A>>() {
+      public Set<A> f(final A a, final Set<A> set) {
+        return set.insert(a);
+      }
+    });
   }
 
   private Set<A> ins(final A x) {
     return isEmpty()
-           ? new Tree<>(ord, Color.R, empty(ord), x, empty(ord))
+           ? new Tree<A>(ord, Color.R, empty(ord), x, empty(ord))
            : ord.isLessThan(x, head())
              ? balance(ord, color(), l().ins(x), head(), r())
              : ord.eq(x, head())
-               ? new Tree<>(ord, color(), l(), x, r())
+               ? new Tree<A>(ord, color(), l(), x, r())
                : balance(ord, color(), l(), head(), r().ins(x));
   }
 
   private Set<A> makeBlack() {
-    return new Tree<>(ord, Color.B, l(), head(), r());
+    return new Tree<A>(ord, Color.B, l(), head(), r());
   }
 
   @SuppressWarnings({"SuspiciousNameCombination"})
@@ -205,11 +225,11 @@ public abstract class Set<A> implements Iterable<A> {
                                 final Set<A> a, final A x, final Set<A> b,
                                 final A y,
                                 final Set<A> c, final A z, final Set<A> d) {
-    return new Tree<>(o, Color.R, new Tree<>(o, Color.B, a, x, b), y, new Tree<>(o, Color.B, c, z, d));
+    return new Tree<A>(o, Color.R, new Tree<A>(o, Color.B, a, x, b), y, new Tree<A>(o, Color.B, c, z, d));
   }
 
   private static <A> Set<A> balance(final Ord<A> ord, final Color c, final Set<A> l, final A h, final Set<A> r) {
-    return c == Color.B && l.isTR() && l.l().isTR() ? tr(ord, l.l().l(), l.l().head(), l.l().r(), l.head(), l.r(), h, r) : c == Color.B && l.isTR() && l.r().isTR() ? tr(ord, l.l(), l.head(), l.r().l(), l.r().head(), l.r().r(), h, r) : c == Color.B && r.isTR() && r.l().isTR() ? tr(ord, l, h, r.l().l(), r.l().head(), r.l().r(), r.head(), r.r()) : c == Color.B && r.isTR() && r.r().isTR() ? tr(ord, l, h, r.l(), r.head(), r.r().l(), r.r().head(), r.r().r()) : new Tree<>(ord, c, l, h, r);
+    return c == Color.B && l.isTR() && l.l().isTR() ? tr(ord, l.l().l(), l.l().head(), l.l().r(), l.head(), l.r(), h, r) : c == Color.B && l.isTR() && l.r().isTR() ? tr(ord, l.l(), l.head(), l.r().l(), l.r().head(), l.r().r(), h, r) : c == Color.B && r.isTR() && r.l().isTR() ? tr(ord, l, h, r.l().l(), r.l().head(), r.l().r(), r.head(), r.r()) : c == Color.B && r.isTR() && r.r().isTR() ? tr(ord, l, h, r.l(), r.head(), r.r().l(), r.r().head(), r.r().r()) : new Tree<A>(ord, c, l, h, r);
   }
 
   private boolean isTR() {
@@ -306,7 +326,11 @@ public abstract class Set<A> implements Iterable<A> {
    * @see #union(Set)
    */
   public static <A> F<Set<A>, F<Set<A>, Set<A>>> union() {
-    return curry((final Set<A> s1, final Set<A> s2) -> s1.union(s2));
+    return curry(new F2<Set<A>, Set<A>, Set<A>>() {
+      public Set<A> f(final Set<A> s1, final Set<A> s2) {
+        return s1.union(s2);
+      }
+    });
   }
 
   /**
@@ -336,7 +360,11 @@ public abstract class Set<A> implements Iterable<A> {
    * @return A function that deletes a given element from a given set.
    */
   public final F<A, F<Set<A>, Set<A>>> delete() {
-    return curry((final A a, final Set<A> set) -> set.delete(a));
+    return curry(new F2<A, Set<A>, Set<A>>() {
+      public Set<A> f(final A a, final Set<A> set) {
+        return set.delete(a);
+      }
+    });
   }
 
   /**
@@ -356,7 +384,11 @@ public abstract class Set<A> implements Iterable<A> {
    * @see #intersect(Set)
    */
   public static <A> F<Set<A>, F<Set<A>, Set<A>>> intersect() {
-    return curry((final Set<A> s1, final Set<A> s2) -> s1.intersect(s2));
+    return curry(new F2<Set<A>, Set<A>, Set<A>>() {
+      public Set<A> f(final Set<A> s1, final Set<A> s2) {
+        return s1.intersect(s2);
+      }
+    });
   }
 
   /**
@@ -376,7 +408,11 @@ public abstract class Set<A> implements Iterable<A> {
    * @see #minus(Set)
    */
   public static <A> F<Set<A>, F<Set<A>, Set<A>>> minus() {
-    return curry((final Set<A> s1, final Set<A> s2) -> s1.minus(s2));
+    return curry(new F2<Set<A>, Set<A>, Set<A>>() {
+      public Set<A> f(final Set<A> s1, final Set<A> s2) {
+        return s1.minus(s2);
+      }
+    });
   }
 
   /**

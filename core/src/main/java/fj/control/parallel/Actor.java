@@ -4,7 +4,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import fj.Effect;
 import fj.F;
-import fj.Product1;
 import fj.Unit;
 import fj.P1;
 
@@ -38,7 +37,7 @@ public final class Actor<A> {
       AtomicBoolean suspended = new AtomicBoolean(true);
 
       // Queue to hold pending messages
-      ConcurrentLinkedQueue<T> mbox = new ConcurrentLinkedQueue<>();
+      ConcurrentLinkedQueue<T> mbox = new ConcurrentLinkedQueue<T>();
 
       // Product so the actor can use its strategy (to act on messages in other threads,
       // to handle exceptions, etc.)
@@ -78,7 +77,11 @@ public final class Actor<A> {
   
   private Actor(final Strategy<Unit> s, final F<A, P1<Unit>> e) {
     this.s = s;
-    f = a -> s.par(e.f(a));
+    f = new F<A, P1<Unit>>() {
+      public P1<Unit> f(final A a) {
+        return s.par(e.f(a));
+      }
+    };
   }
 
   /**
@@ -89,7 +92,7 @@ public final class Actor<A> {
    * @return A new actor that uses the given parallelization strategy and has the given side-effect.
    */
   public static <A> Actor<A> actor(final Strategy<Unit> s, final Effect<A> e) {
-    return new Actor<>(s, Product1.curry(e.e()));
+    return new Actor<A>(s, P1.curry(e.e()));
   }
 
   /**
@@ -100,7 +103,7 @@ public final class Actor<A> {
    * @return A new actor that uses the given parallelization strategy and has the given side-effect.
    */
   public static <A> Actor<A> actor(final Strategy<Unit> s, final F<A, P1<Unit>> e) {
-    return new Actor<>(s, e);
+    return new Actor<A>(s, e);
   }
 
   /**
@@ -122,7 +125,11 @@ public final class Actor<A> {
    * @return A new actor which passes its messages through the given function, to this actor.
    */
   public <B> Actor<B> comap(final F<B, A> f) {
-    return actor(s, (final B b) -> act(f.f(b)));
+    return actor(s, new F<B, P1<Unit>>() {
+      public P1<Unit> f(final B b) {
+        return act(f.f(b));
+      }
+    });
   }
 
   /**

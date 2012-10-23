@@ -354,7 +354,11 @@ public abstract class P6<A, B, C, D, E, F> {
    * @return A function that returns the first element of a product.
    */
   public static <A, B, C, D, E, F$> fj.F<P6<A, B, C, D, E, F$>, A> __1() {
-    return p -> p._1();
+    return new fj.F<P6<A, B, C, D, E, F$>, A>() {
+      public A f(final P6<A, B, C, D, E, F$> p) {
+        return p._1();
+      }
+    };
   }
 
   /**
@@ -363,7 +367,11 @@ public abstract class P6<A, B, C, D, E, F> {
    * @return A function that returns the second element of a product.
    */
   public static <A, B, C, D, E, F$> fj.F<P6<A, B, C, D, E, F$>, B> __2() {
-    return p -> p._2();
+    return new fj.F<P6<A, B, C, D, E, F$>, B>() {
+      public B f(final P6<A, B, C, D, E, F$> p) {
+        return p._2();
+      }
+    };
   }
 
   /**
@@ -372,7 +380,11 @@ public abstract class P6<A, B, C, D, E, F> {
    * @return A function that returns the third element of a product.
    */
   public static <A, B, C, D, E, F$> fj.F<P6<A, B, C, D, E, F$>, C> __3() {
-    return p -> p._3();
+    return new fj.F<P6<A, B, C, D, E, F$>, C>() {
+      public C f(final P6<A, B, C, D, E, F$> p) {
+        return p._3();
+      }
+    };
   }
 
   /**
@@ -381,7 +393,11 @@ public abstract class P6<A, B, C, D, E, F> {
    * @return A function that returns the fourth element of a product.
    */
   public static <A, B, C, D, E, F$> fj.F<P6<A, B, C, D, E, F$>, D> __4() {
-    return p -> p._4();
+    return new fj.F<P6<A, B, C, D, E, F$>, D>() {
+      public D f(final P6<A, B, C, D, E, F$> p) {
+        return p._4();
+      }
+    };
   }
 
   /**
@@ -390,7 +406,11 @@ public abstract class P6<A, B, C, D, E, F> {
    * @return A function that returns the fifth element of a product.
    */
   public static <A, B, C, D, E, F$> fj.F<P6<A, B, C, D, E, F$>, E> __5() {
-    return p -> p._5();
+    return new fj.F<P6<A, B, C, D, E, F$>, E>() {
+      public E f(final P6<A, B, C, D, E, F$> p) {
+        return p._5();
+      }
+    };
   }
 
   /**
@@ -399,6 +419,10 @@ public abstract class P6<A, B, C, D, E, F> {
    * @return A function that returns the sixth element of a product.
    */
   public static <A, B, C, D, E, F$> fj.F<P6<A, B, C, D, E, F$>, F$> __6() {
-    return p -> p._6();
+    return new fj.F<P6<A, B, C, D, E, F$>, F$>() {
+      public F$ f(final P6<A, B, C, D, E, F$> p) {
+        return p._6();
+      }
+    };
   }
 }

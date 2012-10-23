@@ -644,7 +644,11 @@ public interface F<A, B> {
    * @return This function promoted to return its value in a Zipper.
    */
   public F<A, Zipper<B>> zipperK() default {
-    return streamK().andThen((F<Stream<B>, Zipper<B>>) stream -> fromStream(stream).some());
+    return streamK().andThen(new F<Stream<B>, Zipper<B>>() {
+      public Zipper<B> f(final Stream<B> stream) {
+        return fromStream(stream).some();
+      }
+    });
   }
 
   /**
@@ -737,7 +741,7 @@ public interface F<A, B> {
    * @return A new SynchronousQueue with this function applied to each element.
    */
   public SynchronousQueue<B> mapJ(final SynchronousQueue<A> as) default {
-    final SynchronousQueue<B> bs = new SynchronousQueue<>();
+    final SynchronousQueue<B> bs = new SynchronousQueue<B>();
     bs.addAll(iterableStream(as).map(this).toCollection());
     return bs;
   }
@@ -750,7 +754,7 @@ public interface F<A, B> {
    * @return A new PriorityBlockingQueue with this function applied to each element.
    */
   public PriorityBlockingQueue<B> mapJ(final PriorityBlockingQueue<A> as) default {
-    return new PriorityBlockingQueue<>(iterableStream(as).map(this).toCollection());
+    return new PriorityBlockingQueue<B>(iterableStream(as).map(this).toCollection());
   }
 
   /**
@@ -760,7 +764,7 @@ public interface F<A, B> {
    * @return A new LinkedBlockingQueue with this function applied to each element.
    */
   public LinkedBlockingQueue<B> mapJ(final LinkedBlockingQueue<A> as) default {
-    return new LinkedBlockingQueue<>(iterableStream(as).map(this).toCollection());
+    return new LinkedBlockingQueue<B>(iterableStream(as).map(this).toCollection());
   }
 
   /**
@@ -770,7 +774,7 @@ public interface F<A, B> {
    * @return A new CopyOnWriteArraySet with this function applied to each element.
    */
   public CopyOnWriteArraySet<B> mapJ(final CopyOnWriteArraySet<A> as) default {
-    return new CopyOnWriteArraySet<>(iterableStream(as).map(this).toCollection());
+    return new CopyOnWriteArraySet<B>(iterableStream(as).map(this).toCollection());
   }
 
   /**
@@ -780,7 +784,7 @@ public interface F<A, B> {
    * @return A new CopyOnWriteArrayList with this function applied to each element.
    */
   public CopyOnWriteArrayList<B> mapJ(final CopyOnWriteArrayList<A> as) default {
-    return new CopyOnWriteArrayList<>(iterableStream(as).map(this).toCollection());
+    return new CopyOnWriteArrayList<B>(iterableStream(as).map(this).toCollection());
   }
 
   /**
@@ -790,7 +794,7 @@ public interface F<A, B> {
    * @return A new ConcurrentLinkedQueue with this function applied to each element.
    */
   public ConcurrentLinkedQueue<B> mapJ(final ConcurrentLinkedQueue<A> as) default {
-    return new ConcurrentLinkedQueue<>(iterableStream(as).map(this).toCollection());
+    return new ConcurrentLinkedQueue<B>(iterableStream(as).map(this).toCollection());
   }
 
   /**
@@ -800,7 +804,7 @@ public interface F<A, B> {
    * @return A new ArrayBlockingQueue with this function applied to each element.
    */
   public ArrayBlockingQueue<B> mapJ(final ArrayBlockingQueue<A> as) default {
-    final ArrayBlockingQueue<B> bs = new ArrayBlockingQueue<>(as.size());
+    final ArrayBlockingQueue<B> bs = new ArrayBlockingQueue<B>(as.size());
     bs.addAll(iterableStream(as).map(this).toCollection());
     return bs;
   }
@@ -813,7 +817,7 @@ public interface F<A, B> {
    * @return A new TreeSet with this function applied to each element.
    */
   public TreeSet<B> mapJ(final TreeSet<A> as) default {
-    return new TreeSet<>(iterableStream(as).map(this).toCollection());
+    return new TreeSet<B>(iterableStream(as).map(this).toCollection());
   }
 
   /**
@@ -823,7 +827,7 @@ public interface F<A, B> {
    * @return A new PriorityQueue with this function applied to each element.
    */
   public PriorityQueue<B> mapJ(final PriorityQueue<A> as) default {
-    return new PriorityQueue<>(iterableStream(as).map(this).toCollection());
+    return new PriorityQueue<B>(iterableStream(as).map(this).toCollection());
   }
 
   /**
@@ -833,7 +837,7 @@ public interface F<A, B> {
    * @return A new LinkedList with this function applied to each element.
    */
   public LinkedList<B> mapJ(final LinkedList<A> as) default {
-    return new LinkedList<>(iterableStream(as).map(this).toCollection());
+    return new LinkedList<B>(iterableStream(as).map(this).toCollection());
   }
 
   /**
@@ -843,6 +847,6 @@ public interface F<A, B> {
    * @return A new ArrayList with this function applied to each element.
    */
   public ArrayList<B> mapJ(final ArrayList<A> as) default {
-    return new ArrayList<>(iterableStream(as).map(this).toCollection());
+    return new ArrayList<B>(iterableStream(as).map(this).toCollection());
   }
 }

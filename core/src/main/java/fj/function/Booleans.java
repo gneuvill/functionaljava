@@ -42,12 +42,20 @@ public final class Booleans {
   /**
    * Logical negation.
    */
-  public static final F<Boolean, Boolean> not = p -> !p;
+  public static final F<Boolean, Boolean> not = new F<Boolean, Boolean>() {
+    public Boolean f(final Boolean p) {
+      return !p;
+    }
+  };
 
   /**
    * Curried form of logical "only if" (material implication).
    */
-  public static final F<Boolean, F<Boolean, Boolean>> implies = curry((final Boolean p, final Boolean q) -> !p || q);
+  public static final F<Boolean, F<Boolean, Boolean>> implies = curry(new F2<Boolean, Boolean, Boolean>() {
+    public Boolean f(final Boolean p, final Boolean q) {
+      return !p || q;
+    }
+  });
 
   /**
    * Curried form of logical "if" (reverse material implication).

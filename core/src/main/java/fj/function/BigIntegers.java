@@ -22,40 +22,68 @@ public final class BigIntegers {
    * Curried Integer addition.
    */
   public static final F<BigInteger, F<BigInteger, BigInteger>> add =
-      curry((final BigInteger a1, final BigInteger a2) -> a1.add(a2));
+      curry(new F2<BigInteger, BigInteger, BigInteger>() {
+        public BigInteger f(final BigInteger a1, final BigInteger a2) {
+          return a1.add(a2);
+        }
+      });
 
   /**
    * Curried Integer multiplication.
    */
   public static final F<BigInteger, F<BigInteger, BigInteger>> multiply =
-      curry((final BigInteger a1, final BigInteger a2) -> a1.multiply(a2));
+      curry(new F2<BigInteger, BigInteger, BigInteger>() {
+        public BigInteger f(final BigInteger a1, final BigInteger a2) {
+          return a1.multiply(a2);
+        }
+      });
 
   /**
    * Curried Integer subtraction.
    */
   public static final F<BigInteger, F<BigInteger, BigInteger>> subtract =
-      curry((final BigInteger a1, final BigInteger a2) -> a1.subtract(a2));
+      curry(new F2<BigInteger, BigInteger, BigInteger>() {
+        public BigInteger f(final BigInteger a1, final BigInteger a2) {
+          return a1.subtract(a2);
+        }
+      });
 
   /**
    * Negation.
    */
-  public static final F<BigInteger, BigInteger> negate = i -> i.negate();
+  public static final F<BigInteger, BigInteger> negate = new F<BigInteger, BigInteger>() {
+    public BigInteger f(final BigInteger i) {
+      return i.negate();
+    }
+  };
 
   /**
    * Absolute value.
    */
-  public static final F<BigInteger, BigInteger> abs = i -> i.abs();
+  public static final F<BigInteger, BigInteger> abs = new F<BigInteger, BigInteger>() {
+    public BigInteger f(final BigInteger i) {
+      return i.abs();
+    }
+  };
 
   /**
    * Remainder.
    */
   public static final F<BigInteger, F<BigInteger, BigInteger>> remainder =
-      curry((final BigInteger a1, final BigInteger a2) -> a1.remainder(a2));
+      curry(new F2<BigInteger, BigInteger, BigInteger>() {
+        public BigInteger f(final BigInteger a1, final BigInteger a2) {
+          return a1.remainder(a2);
+        }
+      });
 
   /**
    * Power.
    */
-  public static final F<BigInteger, F<Integer, BigInteger>> power = curry((final BigInteger a1, final Integer a2) -> a1.pow(a2));
+  public static final F<BigInteger, F<Integer, BigInteger>> power = curry(new F2<BigInteger, Integer, BigInteger>() {
+    public BigInteger f(final BigInteger a1, final Integer a2) {
+      return a1.pow(a2);
+    }
+  });
 
   /**
    * Sums a list of big integers.

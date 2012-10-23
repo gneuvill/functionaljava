@@ -196,7 +196,11 @@ public abstract class Option<A> implements Iterable<A> {
    * @return A function that maps a given function across a given optional value.
    */
   public static <A, B> F<F<A, B>, F<Option<A>, Option<B>>> map() {
-    return curry((final F<A, B> abf, final Option<A> option) -> option.map(abf));
+    return curry(new F2<F<A, B>, Option<A>, Option<B>>() {
+      public Option<B> f(final F<A, B> abf, final Option<A> option) {
+        return option.map(abf);
+      }
+    });
   }
 
   /**
@@ -415,7 +419,11 @@ public abstract class Option<A> implements Iterable<A> {
    *         optional value.
    */
   public final <B> Option<B> apply(final Option<F<A, B>> of) {
-    return of.bind(f -> map((F<A, B>) a -> f.f(a)));
+    return of.bind(new F<F<A, B>, Option<B>>() {
+      public Option<B> f(final F<A, B> f) {
+        return map((F<A, B>) a -> f.f(a));
+      }
+    });
   }
 
   /**
@@ -467,7 +475,11 @@ public abstract class Option<A> implements Iterable<A> {
    *         return in left.
    */
   public static <A, X> F<Option<A>, F<X, Either<X, A>>> toEither() {
-    return curry((final Option<A> a, final X x) -> a.toEither(x));
+    return curry(new F2<Option<A>, X, Either<X, A>>() {
+      public Either<X, A> f(final Option<A> a, final X x) {
+        return a.toEither(x);
+      }
+    });
   }
 
   /**
@@ -638,7 +650,7 @@ public abstract class Option<A> implements Iterable<A> {
    * @return An optional value that has a value of the given argument.
    */
   public static <T> Option<T> some(final T t) {
-    return new Some<>(t);
+    return new Some<T>(t);
   }
 
   /**
@@ -647,7 +659,7 @@ public abstract class Option<A> implements Iterable<A> {
    * @return An optional value that has no value.
    */
   public static <T> Option<T> none() {
-    return new None<>();
+    return new None<T>();
   }
 
   /**
@@ -691,7 +703,11 @@ public abstract class Option<A> implements Iterable<A> {
   public static <A> Option<List<A>> sequence(final List<Option<A>> a) {
     return a.isEmpty() ?
            some(List.<A>nil()) :
-           a.head().bind(aa -> sequence(a.tail()).map(cons_(aa)));
+           a.head().bind(new F<A, Option<List<A>>>() {
+             public Option<List<A>> f(final A aa) {
+               return sequence(a.tail()).map(cons_(aa));
+             }
+           });
   }
 
   /**
@@ -772,9 +788,11 @@ public abstract class Option<A> implements Iterable<A> {
    * @return an optional non-empty string, or no value if the given string is empty.
    */
   public static Option<String> fromString(final String s) {
-    return fromNull(s).bind(s -> {
-      final Option<String> none = none();
-      return s.length() == 0 ? none : some(s);
+    return fromNull(s).bind(new F<String, Option<String>>() {
+      public Option<String> f(final String s) {
+        final Option<String> none = none();
+        return s.length() == 0 ? none : some(s);
+      }
     });
   }
 

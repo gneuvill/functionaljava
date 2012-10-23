@@ -17,7 +17,7 @@ public final class Measured<V, A> {
   }
 
   public static <V, A> Measured<V, A> measured(final Monoid<V> m, final F<A, V> measure) {
-    return new Measured<>(m, measure);
+    return new Measured<V, A>(m, measure);
   }
 
   /**
@@ -74,7 +74,11 @@ public final class Measured<V, A> {
    * @return A measured instance for nodes.
    */
   public Measured<V, Node<V, A>> nodeMeasured() {
-    return new Measured<>(m, node -> node.measure());
+    return new Measured<V, Node<V, A>>(m, new F<Node<V, A>, V>() {
+      public V f(final Node<V, A> node) {
+        return node.measure();
+      }
+    });
   }
 
   /**
@@ -83,7 +87,11 @@ public final class Measured<V, A> {
    * @return A measured instance for digits.
    */
   public Measured<V, Digit<V, A>> digitMeasured() {
-    return new Measured<>(m, d -> d.measure());
+    return new Measured<V, Digit<V, A>>(m, new F<Digit<V, A>, V>() {
+      public V f(final Digit<V, A> d) {
+        return d.measure();
+      }
+    });
   }
 
 }

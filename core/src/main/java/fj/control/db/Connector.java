@@ -6,6 +6,6 @@ import java.sql.SQLException;
 /**
  * A method of connecting to the database.
  */
-public abstract class Connector {
-  public abstract Connection connect() throws SQLException;
+public interface Connector {
+  Connection connect() throws SQLException;
 }

@@ -25,11 +25,7 @@ public final class DbState {
    * @return A connector that generates connections to the given database.
    */
   public static Connector driverManager(final String url) {
-    return new Connector() {
-      public Connection connect() throws SQLException {
-        return DriverManager.getConnection(url);
-      }
-    };
+    return () -> DriverManager.getConnection(url);
   }
 
   /**

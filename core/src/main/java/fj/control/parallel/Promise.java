@@ -6,6 +6,7 @@ import fj.F2;
 import fj.P;
 import fj.P1;
 import fj.P2;
+import fj.Product1;
 import fj.Unit;
 import static fj.P.p;
 import static fj.Function.curry;
@@ -123,7 +124,7 @@ public final class Promise<A> {
   public static <A, B> F<A, Promise<B>> promise(final Strategy<Unit> s, final F<A, B> f) {
     return new F<A, Promise<B>>() {
       public Promise<B> f(final A a) {
-        return promise(s, P1.curry(f).f(a));
+        return promise(s, Product1.curry(f).f(a));
       }
     };
   }
@@ -334,7 +335,7 @@ public final class Promise<A> {
     return new F<List<A>, Promise<B>>() {
       public Promise<B> f(final List<A> as) {
         return as.isEmpty() ? promise(s, p(b)) : liftM2(f).f(promise(s, P.p(as.head()))).f(
-            join(s, P1.curry(this).f(as.tail())));
+            join(s, Product1.curry(this).f(as.tail())));
       }
     };
   }

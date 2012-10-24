@@ -6,13 +6,10 @@ import fj.F2;
 import fj.Function;
 import fj.P;
 import fj.P1;
-import static fj.Function.compose;
-import static fj.Function.curry;
-import static fj.P1.fmap;
-import static fj.P1.sequence;
+import fj.Product1;
+import fj.data.Array;
 import fj.data.Java;
 import fj.data.List;
-import fj.data.Array;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
@@ -20,6 +17,11 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
+
+import static fj.Function.compose;
+import static fj.Function.curry;
+import static fj.Product1.fmap;
+import static fj.Product1.sequence;
 
 /**
  * Functional-style parallel evaluation strategies.
@@ -73,7 +75,7 @@ public final class Strategy<A> {
    * @return A function that executes concurrently when called, yielding a Future value.
    */
   public <B> F<B, P1<A>> concurry(final F<B, A> f) {
-    return compose(f(), P1.<B, A>curry(f));
+    return compose(f(), Product1.<B, A>curry(f));
   }
 
   /**
@@ -142,7 +144,7 @@ public final class Strategy<A> {
    * @return A list with all of its elements transformed by the given function.
    */
   public <B> List<A> parMap1(final F<B, A> f, final List<B> bs) {
-    return compose(P1.<List<A>>__1(), parMapList(f)).f(bs);
+    return compose(Product1.<List<A>>__1(), parMapList(f)).f(bs);
   }
 
   /**
@@ -155,7 +157,7 @@ public final class Strategy<A> {
    * @return An array with all of its elements transformed by the given function.
    */
   public <B> Array<A> parMap1(final F<B, A> f, final Array<B> bs) {
-    return compose(P1.<Array<A>>__1(), parMapArray(f)).f(bs);
+    return compose(Product1.<Array<A>>__1(), parMapArray(f)).f(bs);
   }
 
   /**
@@ -286,7 +288,7 @@ public final class Strategy<A> {
   public static <A> P1<List<A>> parListChunk(final Strategy<List<A>> s,
                                              final int chunkLength,
                                              final List<P1<A>> as) {
-    return fmap(List.<A>join()).f(s.parList(as.partition(chunkLength).map(P1.<A>sequenceList())));
+    return fmap(List.<A>join()).f(s.parList(as.partition(chunkLength).map(Product1.<A>sequenceList())));
   }
 
   /**
@@ -546,7 +548,7 @@ public final class Strategy<A> {
   public static <A> Strategy<Callable<A>> callableStrategy(final Strategy<Callable<A>> s) {
     return s.comap(new F<P1<Callable<A>>, P1<Callable<A>>>() {
       public P1<Callable<A>> f(final P1<Callable<A>> a) {
-        return P1.curry(Callables.<A>normalise()).f(a._1());
+        return Product1.curry(Callables.<A>normalise()).f(a._1());
       }
     });
   }

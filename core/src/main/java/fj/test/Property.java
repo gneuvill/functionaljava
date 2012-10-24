@@ -15,6 +15,8 @@ import fj.P;
 import fj.P1;
 import fj.P2;
 import static fj.P2.__2;
+
+import fj.Product1;
 import fj.data.List;
 import fj.data.Option;
 import static fj.data.Option.none;
@@ -526,7 +528,7 @@ public final class Property {
    *         application of its arguments.
    */
   public static <A> Property property(final Arbitrary<A> aa, final Shrink<A> sa, final F<A, Property> f) {
-    return propertyP(aa, sa, P1.curry(f));
+    return propertyP(aa, sa, Product1.curry(f));
   }
 
   /**
@@ -552,7 +554,7 @@ public final class Property {
    *         application of its arguments.
    */
   public static <A> Property property(final Arbitrary<A> aa, final F<A, Property> f) {
-    return propertyP(aa, P1.curry(f));
+    return propertyP(aa, Product1.curry(f));
   }
 
 

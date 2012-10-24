@@ -8,6 +8,7 @@ import fj.P2;
 import static fj.Function.*;
 import static fj.data.Stream.*;
 import fj.Monoid;
+import fj.Product1;
 import fj.Show;
 
 import java.util.Collection;
@@ -173,7 +174,7 @@ public final class Tree<A> implements Iterable<A> {
    */
   public Stream<Stream<A>> levels() {
     final F<Stream<Tree<A>>, Stream<Tree<A>>> flatSubForests =
-        Stream.<Tree<A>, Tree<A>>bind_().f(compose(P1.<Stream<Tree<A>>>__1(), Tree.<A>subForest_()));
+        Stream.<Tree<A>, Tree<A>>bind_().f(compose(Product1.<Stream<Tree<A>>>__1(), Tree.<A>subForest_()));
     final F<Stream<Tree<A>>, Stream<A>> roots = Stream.<Tree<A>, A>map_().f(Tree.<A>root_());
     return iterateWhile(flatSubForests, Stream.<Tree<A>>isNotEmpty_(), single(this)).map(roots);
   }

@@ -3,6 +3,7 @@ package fj.control.parallel;
 import fj.Effect;
 import fj.F;
 import fj.P1;
+import fj.Product1;
 import fj.Unit;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -93,7 +94,7 @@ public final class Actor<A> {
    * @return A new actor that uses the given parallelization strategy and has the given side-effect.
    */
   public static <A> Actor<A> actor(final Strategy<Unit> s, final Effect<A> e) {
-    return new Actor<>(s, P1.curry(e.e()));
+    return new Actor<>(s, Product1.curry(e.e()));
   }
 
   /**

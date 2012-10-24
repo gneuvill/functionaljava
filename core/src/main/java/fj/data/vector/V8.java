@@ -8,6 +8,8 @@ import fj.P7;
 import fj.P8;
 import static fj.Function.curry;
 import static fj.P.p2;
+
+import fj.Product1;
 import fj.data.Array;
 import fj.data.NonEmptyList;
 import fj.data.Stream;
@@ -269,7 +271,7 @@ public final class V8<A> implements Iterable<A> {
    * @return A new vector after zipping the given vector of functions over this vector.
    */
   public <B> V8<B> apply(final V8<F<A, B>> vf) {
-    return new V8<B>(P1.<A, B>apply(head, vf.head()), tail.apply(vf.tail()));
+    return new V8<B>(Product1.<A, B>apply(head, vf.head()), tail.apply(vf.tail()));
   }
 
   /**

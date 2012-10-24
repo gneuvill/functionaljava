@@ -4,6 +4,7 @@ import fj.Bottom;
 import fj.F;
 import fj.F2;
 import fj.P1;
+import fj.Product1;
 import fj.data.Either;
 
 import static fj.Function.curry;
@@ -336,14 +337,14 @@ public abstract class Trampoline<A> {
     final Either<P1<Trampoline<B>>, B> eb = b.resume();
     for (final P1<Trampoline<A>> x : ea.left()) {
       for (final P1<Trampoline<B>> y : eb.left()) {
-        return suspend(P1.bind(x, y, new F2<Trampoline<A>, Trampoline<B>, Trampoline<C>>() {
-          public Trampoline<C> f(final Trampoline<A> ta, final Trampoline<B> tb) {
-            return suspend(new P1<Trampoline<C>>() {
-              public Trampoline<C> _1() {
-                return ta.zipWith(tb, f);
-              }
-            });
-          }
+        return suspend(Product1.bind(x, y, new F2<Trampoline<A>, Trampoline<B>, Trampoline<C>>() {
+            public Trampoline<C> f(final Trampoline<A> ta, final Trampoline<B> tb) {
+                return suspend(new P1<Trampoline<C>>() {
+                    public Trampoline<C> _1() {
+                        return ta.zipWith(tb, f);
+                    }
+                });
+            }
         }.curry()));
       }
       for (final B y : eb.right()) {

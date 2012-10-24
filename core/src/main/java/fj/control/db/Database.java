@@ -13,11 +13,7 @@ public class Database {
      * @return A database action representing the given function.
      */
     public static <A> DB<A> db(final F<Connection, A> f) {
-      return new DB<A>() {
-        public A run(final Connection c) {
-          return f.f(c);
-        }
-      };
+      return f::f;
     }
 
     /**
@@ -27,11 +23,7 @@ public class Database {
      * @return A function equivalent to the given one, which operates on values in the database.
      */
     public static <A, B> F<DB<A>, DB<B>> liftM(final F<A, B> f) {
-      return new F<DB<A>, DB<B>>() {
-        public DB<B> f(final DB<A> a) {
-          return a.map(f);
-        }
-      };
+      return a -> a.map(f);
     }
 
     /**
@@ -41,11 +33,7 @@ public class Database {
      * @return A new database action that returns the given value.
      */
     public static <A> DB<A> unit(final A a) {
-      return new DB<A>() {
-        public A run(final Connection c) {
-          return a;
-        }
-      };
+      return c -> a;
     }
 
     /**

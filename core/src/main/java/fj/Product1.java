@@ -11,11 +11,7 @@ public final class Product1 {
      * @return A function that returns the first element of a product.
      */
     public static <A> F<P1<A>, A> __1() {
-      return new F<P1<A>, A>() {
-        public A f(final P1<A> p) {
-          return p._1();
-        }
-      };
+      return P1::_1;
     }
 
     /**
@@ -25,11 +21,7 @@ public final class Product1 {
      * @return A function promoted to operate on P1s.
      */
     public static <A, B> F<P1<A>, P1<B>> fmap(final F<A, B> f) {
-      return new F<P1<A>, P1<B>>() {
-        public P1<B> f(final P1<A> a) {
-          return a.map(f);
-        }
-      };
+      return a -> a.map(f);
     }
 
     /**
@@ -40,11 +32,7 @@ public final class Product1 {
      * @return The result of applying the given function to the value of given product-1.
      */
     public static <A, B> P1<B> bind(final P1<A> a, final F<A, P1<B>> f) {
-      return new P1<B>() {
-        public B _1() {
-          return f.f(a._1())._1();
-        }
-      };
+      return f.f(a._1())::_1;
     }
 
     /**
@@ -54,15 +42,7 @@ public final class Product1 {
      * @return A function whose result is wrapped in a P1.
      */
     public static <A, B> F<A, P1<B>> curry(final F<A, B> f) {
-      return new F<A, P1<B>>() {
-        public P1<B> f(final A a) {
-          return new P1<B>() {
-            public B _1() {
-              return f.f(a);
-            }
-          };
-        }
-      };
+      return a -> () -> f.f(a);
     }
 
     /**
@@ -73,11 +53,7 @@ public final class Product1 {
      * @return A new P1 after applying the given P1 function to the first argument.
      */
     public static <A, B> P1<B> apply(final P1<A> ca, final P1<F<A, B>> cf) {
-      return bind(cf, new F<F<A, B>, P1<B>>() {
-        public P1<B> f(final F<A, B> f) {
-          return fmap(f).f(ca);
-        }
-      });
+      return bind(cf, f -> fmap(f).f(ca));
     }
 
     /**
@@ -109,11 +85,7 @@ public final class Product1 {
      * @return A function of arity-2 promoted to map over P1s.
      */
     public static <A, B, C> F<P1<A>, F<P1<B>, P1<C>>> liftM2(final F<A, F<B, C>> f) {
-      return Function.curry(new F2<P1<A>, P1<B>, P1<C>>() {
-        public P1<C> f(final P1<A> pa, final P1<B> pb) {
-          return bind(pa, pb, f);
-        }
-      });
+      return Function.curry((final P1<A> pa, final P1<B> pb) -> bind(pa, pb, f));
     }
 
     /**
@@ -132,11 +104,7 @@ public final class Product1 {
      * @return A function from a List of P1s to a single P1 of a List.
      */
     public static <A> F<List<P1<A>>, P1<List<A>>> sequenceList() {
-      return new F<List<P1<A>>, P1<List<A>>>() {
-        public P1<List<A>> f(final List<P1<A>> as) {
-          return sequence(as);
-        }
-      };
+      return Product1::sequence;
     }
 
     /**
@@ -156,10 +124,6 @@ public final class Product1 {
      * @return A single P1 for the given array.
      */
     public static <A> P1<Array<A>> sequence(final Array<P1<A>> as) {
-      return new P1<Array<A>>() {
-        public Array<A> _1() {
-          return as.map(Product1.<A>__1());
-        }
-      };
+      return () -> as.map(Product1.<A>__1());
     }
 }

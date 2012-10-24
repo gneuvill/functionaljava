@@ -68,18 +68,14 @@ public final class DbState {
     return new DbState(pc, commit);
   }
 
-  private static final DB<Unit> rollback = new DB<Unit>() {
-    public Unit run(final Connection c) throws SQLException {
-      c.rollback();
-      return Unit.unit();
-    }
+  private static final DB<Unit> rollback = c -> {
+    c.rollback();
+    return Unit.unit();
   };
 
-  private static final DB<Unit> commit = new DB<Unit>() {
-    public Unit run(final Connection c) throws SQLException {
-      c.commit();
-      return Unit.unit();
-    }
+  private static final DB<Unit> commit = c -> {
+    c.commit();
+    return Unit.unit();
   };
 
   /**

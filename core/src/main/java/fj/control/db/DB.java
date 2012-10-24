@@ -26,15 +26,7 @@ public interface DB<A> {
    * @return The callable-valued function which is isomorphic to this database action.
    */
   F<Connection, Callable<A>> asFunction() default {
-    return new F<Connection, Callable<A>>() {
-      public Callable<A> f(final Connection c) {
-        return new Callable<A>() {
-          public A call() throws Exception {
-            return run(c);
-          }
-        };
-      }
-    };
+    return c -> () -> run(c);
   }
 
   /**
@@ -58,10 +50,6 @@ public interface DB<A> {
    * @return A new database action equivalent to applying the given function to the result of this action.
    */
   <B> DB<B> bind(final F<A, DB<B>> f) default {
-    return new DB<B>() {
-      public B run(final Connection c) throws SQLException {
-        return f.f(DB.this.run(c)).run(c);
-      }
-    };
+    return c -> f.f(run(c)).run(c);
   }
 }

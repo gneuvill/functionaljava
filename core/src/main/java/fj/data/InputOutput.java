@@ -42,7 +42,7 @@ public final class InputOutput {
     public static <A> IO<Iteratee.IterV<String, A>> enumFileLines(final File f, final Option<Charset> encoding, final Iteratee.IterV<String, A> i) {
       return bracket(bufferedReader(f, encoding)
               , Function.<BufferedReader, IO<Unit>>vary(IO.closeReader)
-              , partialApply2(<A>lineReader(), i));
+              , partialApply2(InputOutput.<A>lineReader(), i));
     }
 
     /**
@@ -55,7 +55,7 @@ public final class InputOutput {
   public static <A> IO<Iteratee.IterV<char[], A>> enumFileCharChunks(final File f, final Option<Charset> encoding, final Iteratee.IterV<char[], A> i) {
     return bracket(fileReader(f, encoding)
             , Function.<Reader, IO<Unit>>vary(IO.closeReader)
-            , partialApply2(<A>charChunkReader(), i));
+            , partialApply2(InputOutput.<A>charChunkReader(), i));
   }
 
     /**
@@ -68,7 +68,7 @@ public final class InputOutput {
   public static <A> IO<Iteratee.IterV<Character, A>> enumFileChars(final File f, final Option<Charset> encoding, final Iteratee.IterV<Character, A> i) {
     return bracket(fileReader(f, encoding)
             , Function.<Reader, IO<Unit>>vary(IO.closeReader)
-            , partialApply2(<A>charChunkReader2(), i));
+            , partialApply2(InputOutput.<A>charChunkReader2(), i));
   }
 
     public static IO<BufferedReader> bufferedReader(final File f, final Option<Charset> encoding) {

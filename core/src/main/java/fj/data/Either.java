@@ -1,22 +1,22 @@
 package fj.data;
 
-import static fj.Bottom.error;
 import fj.Effect;
 import fj.F;
-import static fj.Function.identity;
-import static fj.P.p;
-
 import fj.Function;
 import fj.P1;
 import fj.Unit;
-import static fj.Unit.unit;
-import static fj.data.Array.mkArray;
-import static fj.data.List.single;
-import static fj.data.List.cons_;
-import static fj.data.Option.some;
 
 import java.util.Collection;
 import java.util.Iterator;
+
+import static fj.Bottom.error;
+import static fj.Function.identity;
+import static fj.P.p;
+import static fj.Unit.unit;
+import static fj.data.Array.mkArray;
+import static fj.data.List.cons_;
+import static fj.data.List.single;
+import static fj.data.Option.some;
 
 /**
  * The <code>Either</code> type represents a value of one of two possible types (a disjoint union).
@@ -38,7 +38,7 @@ public abstract class Either<A, B> {
    * @return A left projection of this either.
    */
   public final LeftProjection<A, B> left() {
-    return new LeftProjection<A, B>(this);
+    return new LeftProjection<>(this);
   }
 
   /**
@@ -47,7 +47,7 @@ public abstract class Either<A, B> {
    * @return A right projection of this either.
    */
   public final RightProjection<A, B> right() {
-    return new RightProjection<A, B>(this);
+    return new RightProjection<>(this);
   }
 
   /**
@@ -287,11 +287,7 @@ public abstract class Either<A, B> {
      * @return The result of function application within either.
      */
     public <X> Either<X, B> apply(final Either<F<A, X>, B> e) {
-      return e.left().bind(new F<F<A, X>, Either<X, B>>() {
-        public Either<X, B> f(final F<A, X> f) {
-          return map(f);
-        }
-      });
+      return e.left().bind(this::map);
     }
 
     /**
@@ -521,11 +517,7 @@ public abstract class Either<A, B> {
      * @return The result of function application within either.
      */
     public <X> Either<A, X> apply(final Either<A, F<B, X>> e) {
-      return e.right().bind(new F<F<B, X>, Either<A, X>>() {
-        public Either<A, X> f(final F<B, X> f) {
-          return map(f);
-        }
-      });
+      return e.right().bind(this::map);
     }
 
     /**
@@ -612,7 +604,7 @@ public abstract class Either<A, B> {
    * @return A left value of either.
    */
   public static <A, B> Either<A, B> left(final A a) {
-    return new Left<A, B>(a);
+    return new Left<>(a);
   }
 
   /**
@@ -621,11 +613,7 @@ public abstract class Either<A, B> {
    * @return A function that constructs a left value of either.
    */
   public static <A, B> F<A, Either<A, B>> left_() {
-    return new F<A, Either<A, B>>() {
-      public Either<A, B> f(final A a) {
-        return left(a);
-      }
-    };
+    return Either::left;
   }
 
   /**
@@ -634,11 +622,7 @@ public abstract class Either<A, B> {
    * @return A function that constructs a right value of either.
    */
   public static <A, B> F<B, Either<A, B>> right_() {
-    return new F<B, Either<A, B>>() {
-      public Either<A, B> f(final B b) {
-        return right(b);
-      }
-    };
+    return Either::right;
   }
 
   /**
@@ -648,37 +632,21 @@ public abstract class Either<A, B> {
    * @return A right value of either.
    */
   public static <A, B> Either<A, B> right(final B b) {
-    return new Right<A, B>(b);
+    return new Right<>(b);
   }
 
   /**
    * @return A function that maps another function across an either's left projection.
    */
   public static <A, B, X> F<F<A, X>, F<Either<A, B>, Either<X, B>>> leftMap_() {
-    return new F<F<A, X>, F<Either<A, B>, Either<X, B>>>() {
-      public F<Either<A, B>, Either<X, B>> f(final F<A, X> axf) {
-        return new F<Either<A, B>, Either<X, B>>() {
-          public Either<X, B> f(final Either<A, B> e) {
-            return e.left().map(axf);
-          }
-        };
-      }
-    };
+    return axf -> e -> e.left().map(axf);
   }
 
   /**
    * @return A function that maps another function across an either's right projection.
    */
   public static <A, B, X> F<F<B, X>, F<Either<A, B>, Either<A, X>>> rightMap_() {
-    return new F<F<B, X>, F<Either<A, B>, Either<A, X>>>() {
-      public F<Either<A, B>, Either<A, X>> f(final F<B, X> axf) {
-        return new F<Either<A, B>, Either<A, X>>() {
-          public Either<A, X> f(final Either<A, B> e) {
-            return e.right().map(axf);
-          }
-        };
-      }
-    };
+    return axf -> e -> e.right().map(axf);
   }
 
   /**
@@ -712,11 +680,7 @@ public abstract class Either<A, B> {
   public static <A, X> Either<List<A>, X> sequenceLeft(final List<Either<A, X>> a) {
     return a.isEmpty() ?
            Either.<List<A>, X>left(List.<A>nil()) :
-           a.head().left().bind(new F<A, Either<List<A>, X>>() {
-             public Either<List<A>, X> f(final A aa) {
-               return sequenceLeft(a.tail()).left().map(cons_(aa));
-             }
-           });
+           a.head().left().bind(aa -> sequenceLeft(a.tail()).left().map(cons_(aa)));
   }
 
   /**
@@ -728,11 +692,7 @@ public abstract class Either<A, B> {
   public static <B, X> Either<X, List<B>> sequenceRight(final List<Either<X, B>> a) {
     return a.isEmpty() ?
            Either.<X, List<B>>right(List.<B>nil()) :
-           a.head().right().bind(new F<B, Either<X, List<B>>>() {
-             public Either<X, List<B>> f(final B bb) {
-               return sequenceRight(a.tail()).right().map(cons_(bb));
-             }
-           });
+           a.head().right().bind(bb -> sequenceRight(a.tail()).right().map(cons_(bb)));
   }
 
   /**
@@ -764,15 +724,7 @@ public abstract class Either<A, B> {
    * @return All the left values in the given list.
    */
   public static <A, B> List<A> lefts(final List<Either<A, B>> es) {
-    return es.foldRight(new F<Either<A, B>, F<List<A>, List<A>>>() {
-      public F<List<A>, List<A>> f(final Either<A, B> e) {
-        return new F<List<A>, List<A>>() {
-          public List<A> f(final List<A> as) {
-            return e.isLeft() ? as.cons(e.left().value()) : as;
-          }
-        };
-      }
-    }, List.<A>nil());
+    return es.foldRight(e -> as -> e.isLeft() ? as.cons(e.left().value()) : as, List.<A>nil());
   }
 
   /**
@@ -782,15 +734,7 @@ public abstract class Either<A, B> {
    * @return All the right values in the given list.
    */
   public static <A, B> List<B> rights(final List<Either<A, B>> es) {
-    return es.foldRight(new F<Either<A, B>, F<List<B>, List<B>>>() {
-      public F<List<B>, List<B>> f(final Either<A, B> e) {
-        return new F<List<B>, List<B>>() {
-          public List<B> f(final List<B> bs) {
-            return e.isRight() ? bs.cons(e.right().value()) : bs;
-          }
-        };
-      }
-    }, List.<B>nil());
+    return es.foldRight(e -> bs -> e.isRight() ? bs.cons(e.right().value()) : bs, List.<B>nil());
   }
 }
 

@@ -7,7 +7,7 @@ package fj;
  *
  * @version %build.number%
  */
-public abstract class F7<A, B, C, D, E, F$, G, H> {
+public interface F7<A, B, C, D, E, F$, G, H> {
   /**
    * Transform <code>A</code>, <code>B</code>, <code>C</code>, <code>D</code>, <code>E</code>,
    * <code>F$</code> and <code>G</code> to <code>H</code>.

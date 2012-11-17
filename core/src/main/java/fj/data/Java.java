@@ -1,39 +1,14 @@
 package fj.data;
 
-import fj.Effect;
-import fj.F;
-import fj.Function;
-import fj.P1;
-import fj.P2;
+import fj.*;
 
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.NoSuchElementException;
-import java.util.PriorityQueue;
-import java.util.Stack;
-import java.util.TreeSet;
-import java.util.Vector;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.DelayQueue;
-import java.util.concurrent.Delayed;
-import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.PriorityBlockingQueue;
-import java.util.concurrent.SynchronousQueue;
+import java.util.*;
+import java.util.concurrent.*;
 
 import static fj.P.p;
+import static fj.Unit.*;
 import static fj.data.List.list;
 import static fj.data.Option.some;
-import static java.util.EnumSet.copyOf;
 
 /**
  * Functions that convert between types from the core Java API.
@@ -61,11 +36,10 @@ public final class Java {
    */
   public static final F<List<Boolean>, BitSet> List_BitSet = bs -> {
     final BitSet s = new BitSet(bs.length());
-    bs.zipIndex().foreach(new Effect<P2<Boolean, Integer>>() {
-      public void e(final P2<Boolean, Integer> bi) {
+    bs.zipIndex().foreach(Effect.<P2<Boolean, Integer>>f(bi -> {
         s.set(bi._2(), bi._1());
-      }
-    });
+        return unit();
+    }));
     return s;
   };
 
@@ -241,12 +215,10 @@ public final class Java {
    */
   public static final F<Array<Boolean>, BitSet> Array_BitSet = bs -> {
     final BitSet s = new BitSet(bs.length());
-
-    bs.zipIndex().foreach(new Effect<P2<Boolean, Integer>>() {
-      public void e(final P2<Boolean, Integer> bi) {
-        s.set(bi._2(), bi._1());
-      }
-    });
+    bs.zipIndex().foreach(Effect.<P2<Boolean, Integer>>f(bi -> {
+      s.set(bi._2(), bi._1());
+      return unit();
+    }));
     return s;
   };
 
@@ -451,11 +423,10 @@ public final class Java {
    */
   public static final F<Stream<Boolean>, BitSet> Stream_BitSet = bs -> {
     final BitSet s = new BitSet(bs.length());
-    bs.zipIndex().foreach(new Effect<P2<Boolean, Integer>>() {
-      public void e(final P2<Boolean, Integer> bi) {
+      bs.zipIndex().foreach(Effect.<P2<Boolean, Integer>>f(bi -> {
         s.set(bi._2(), bi._1());
-      }
-    });
+        return unit();
+      }));
     return s;
   };
 
@@ -631,13 +602,16 @@ public final class Java {
    */
   public static final F<Option<Boolean>, BitSet> Option_BitSet = bs -> {
     final BitSet s = new BitSet(bs.length());
-
-    bs.foreach(new Effect<Boolean>() {
-      public void e(final Boolean b) {
-        if (b)
-          s.set(0);
-      }
-    });
+    bs.foreach(Effect.<Boolean>f(boo -> {
+        if (boo) s.set(0);
+        return unit();
+    }));
+    // FIXME : this makes jdk 8's compiler crash !!
+//    bs.foreach(new Effect<Boolean>() {
+//      public void e(final Boolean b) {
+//        if (b) s.set(0);
+//      }
+//    });
     return s;
   };
 

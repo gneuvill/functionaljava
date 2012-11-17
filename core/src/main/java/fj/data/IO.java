@@ -22,20 +22,11 @@ public interface IO<A> {
   A run() throws IOException;
 
   <B> IO<B> map(final F<A, B> f) default {
-    return new IO<B>() {
-      @Override
-      public B run() throws IOException {
-        return f.f(IO.this.run());
-      }
-    };
+      return () -> f.f(IO.this.run());
   }
 
   <B> IO<B> bind(final F<A, IO<B>> f) default {
-    return new IO<B>() {
-      @Override
-      public B run() throws IOException {
-        return f.f(IO.this.run()).run();
-      }
-    };
+      return () -> f.f(IO.this.run()).run();
   }
+
 }

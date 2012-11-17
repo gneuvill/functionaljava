@@ -1,9 +1,11 @@
-target
-out
-lib_managed
+target/
+out/
+lib_managed/
 *.iws
-.deps
+.deps/
+.idea/
+*.iml
 
-.idea/ant.xml
-.idea/workspace.xml
+
+
 

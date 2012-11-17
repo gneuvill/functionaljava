@@ -264,11 +264,7 @@ public final class Function {
    * @return An uncurried function.
    */
   public static <A, B, C, D> F3<A, B, C, D> uncurryF3(final F<A, F<B, F<C, D>>> f) {
-    return new F3<A, B, C, D>() {
-      public D f(final A a, final B b, final C c) {
-        return f.f(a).f(b).f(c);
-      }
-    };
+      return (a, b, c) -> f.f(a).f(b).f(c);
   }
 
   /**
@@ -333,11 +329,7 @@ public final class Function {
    * @return An uncurried function.
    */
   public static <A, B, C, D, E> F4<A, B, C, D, E> uncurryF4(final F<A, F<B, F<C, F<D, E>>>> f) {
-    return new F4<A, B, C, D, E>() {
-      public E f(final A a, final B b, final C c, final D d) {
-        return f.f(a).f(b).f(c).f(d);
-      }
-    };
+      return (a, b, c, d) -> f.f(a).f(b).f(c).f(d);
   }
 
   /**
@@ -418,11 +410,7 @@ public final class Function {
    * @return An uncurried function.
    */
   public static <A, B, C, D, E, F$> F5<A, B, C, D, E, F$> uncurryF5(final F<A, F<B, F<C, F<D, F<E, F$>>>>> f) {
-    return new F5<A, B, C, D, E, F$>() {
-      public F$ f(final A a, final B b, final C c, final D d, final E e) {
-        return f.f(a).f(b).f(c).f(d).f(e);
-      }
-    };
+      return  (a, b, c, d, e) -> f.f(a).f(b).f(c).f(d).f(e);
   }
 
   /**
@@ -452,11 +440,7 @@ public final class Function {
    */
   public static <A, B, C, D, E, F$, G> F6<A, B, C, D, E, F$, G> uncurryF6(
       final F<A, F<B, F<C, F<D, F<E, F<F$, G>>>>>> f) {
-    return new F6<A, B, C, D, E, F$, G>() {
-      public G f(final A a, final B b, final C c, final D d, final E e, final F$ f$) {
-        return f.f(a).f(b).f(c).f(d).f(e).f(f$);
-      }
-    };
+      return  (a, b, c, d, e, f$) -> f.f(a).f(b).f(c).f(d).f(e).f(f$);
   }
 
   /**
@@ -574,11 +558,7 @@ public final class Function {
    */
   public static <A, B, C, D, E, F$, G, H> F7<A, B, C, D, E, F$, G, H> uncurryF7(
       final F<A, F<B, F<C, F<D, F<E, F<F$, F<G, H>>>>>>> f) {
-    return new F7<A, B, C, D, E, F$, G, H>() {
-      public H f(final A a, final B b, final C c, final D d, final E e, final F$ f$, final G g) {
-        return f.f(a).f(b).f(c).f(d).f(e).f(f$).f(g);
-      }
-    };
+      return (a, b, c, d, e, f$, g) -> f.f(a).f(b).f(c).f(d).f(e).f(f$).f(g);
   }
 
   /**
@@ -717,11 +697,7 @@ public final class Function {
    */
   public static <A, B, C, D, E, F$, G, H, I> F8<A, B, C, D, E, F$, G, H, I> uncurryF8(
       final F<A, F<B, F<C, F<D, F<E, F<F$, F<G, F<H, I>>>>>>>> f) {
-    return new F8<A, B, C, D, E, F$, G, H, I>() {
-      public I f(final A a, final B b, final C c, final D d, final E e, final F$ f$, final G g, final H h) {
-        return f.f(a).f(b).f(c).f(d).f(e).f(f$).f(g).f(h);
-      }
-    };
+      return (a, b, c, d, e, f$, g, h) -> f.f(a).f(b).f(c).f(d).f(e).f(f$).f(g).f(h);
   }
 
   /**
@@ -746,15 +722,8 @@ public final class Function {
    * @return A new function after applying the given higher-order function to the given function.
    */
   public static <A, B, C> F<C, B> apply(final F<C, F<A, B>> cab, final F<C, A> ca) {
-    return bind(cab, new F<F<A, B>, F<C, B>>() {
-      public F<C, B> f(final F<A, B> f) {
-        return compose(new F<A, B>() {
-          public B f(final A a) {
-            return f.f(a);
-          }
-        }, ca);
-      }
-    });
+     //return bind(cab, fab -> compose((A a) -> fab.f(a), ca));
+      return bind(cab, fab -> compose(fab, ca));
   }
 
   /**

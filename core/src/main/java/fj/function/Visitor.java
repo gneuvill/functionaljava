@@ -1,17 +1,10 @@
 package fj.function;
 
-import fj.Equal;
-import fj.F;
-import fj.F2;
-import fj.Function;
-import fj.Monoid;
-import fj.P1;
-import fj.P2;
+import fj.*;
 import fj.data.List;
 import fj.data.Option;
 
 import static fj.Function.compose;
-import static fj.Function.curry;
 import static fj.data.List.lookup;
 
 /**
@@ -71,11 +64,7 @@ public final class Visitor {
    * given default.
    */
   public static <A, B> B nullableVisitor(final List<F<A, B>> visitors, final P1<B> def, final A value) {
-    return visitor(visitors.map(new F<F<A, B>, F<A, Option<B>>>() {
-      public F<A, Option<B>> f(final F<A, B> k) {
-        return compose(Option.<B>fromNull(), k);
-      }
-    }), def, value);
+    return visitor(visitors.map(fab -> compose(Option.<B>fromNull(), fab)), def, value);
   }
 
   /**
@@ -87,11 +76,7 @@ public final class Visitor {
    * @return A function that can be applied to a default value (there is no association) and an associated key.
    */
   public static <A, B> F<B, F<A, B>> association(final List<P2<A, B>> x, final Equal<A> eq) {
-    return curry(new F2<B, A, B>() {
-      public B f(final B def, final A a) {
-        return lookup(eq, x, a).orSome(def);
-      }
-    });
+    return def -> a -> lookup(eq, x, a).orSome(def);
   }
 
   /**
@@ -103,10 +88,6 @@ public final class Visitor {
    * @return A function that can be applied to a default value (there is no association) and an associated key.
    */
   public static <A, B> F<P1<B>, F<A, B>> associationLazy(final List<P2<A, B>> x, final Equal<A> eq) {
-    return curry(new F2<P1<B>, A, B>() {
-      public B f(final P1<B> def, final A a) {
-        return lookup(eq, x, a).orSome(def);
-      }
-    });
+    return def -> a -> lookup(eq, x, a).orSome(def);
   }
 }

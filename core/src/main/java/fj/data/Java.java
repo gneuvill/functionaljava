@@ -1,14 +1,40 @@
 package fj.data;
 
-import fj.*;
+import fj.Effect;
+import fj.F;
+import fj.Function;
+import fj.P1;
+import fj.P2;
 
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.NoSuchElementException;
+import java.util.PriorityQueue;
+import java.util.Stack;
+import java.util.TreeSet;
+import java.util.Vector;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.DelayQueue;
+import java.util.concurrent.Delayed;
+import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.SynchronousQueue;
 
 import static fj.P.p;
-import static fj.Unit.*;
+import static fj.Unit.unit;
 import static fj.data.List.list;
 import static fj.data.Option.some;
+import static java.util.EnumSet.copyOf;
 
 /**
  * Functions that convert between types from the core Java API.

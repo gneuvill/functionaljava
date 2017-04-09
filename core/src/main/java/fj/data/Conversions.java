@@ -1,8 +1,20 @@
 package fj.data;
 
-import fj.Effect;
 import fj.F;
 import fj.P1;
+import fj.Unit;
+import fj.function.TryEffect0;
+import fj.function.Effect0;
+import fj.function.Effect1;
+
+import fj.Try;
+import fj.TryEffect;
+import fj.Effect;
+import fj.function.Try0;
+import fj.function.Try1;
+
+import java.io.IOException;
+import static fj.Unit.unit;
 import static fj.data.List.asString;
 import static fj.data.List.fromString;
 
@@ -24,11 +36,7 @@ public final class Conversions {
    * @return A function that converts lists to arrays.
    */
   public static <A> F<List<A>, Array<A>> List_Array() {
-    return new F<List<A>, Array<A>>() {
-      public Array<A> f(final List<A> as) {
-        return as.toArray();
-      }
-    };
+    return List::toArray;
   }
 
   /**
@@ -37,11 +45,7 @@ public final class Conversions {
    * @return A function that converts lists to streams.
    */
   public static <A> F<List<A>, Stream<A>> List_Stream() {
-    return new F<List<A>, Stream<A>>() {
-      public Stream<A> f(final List<A> as) {
-        return as.toStream();
-      }
-    };
+    return List::toStream;
   }
 
   /**
@@ -50,11 +54,7 @@ public final class Conversions {
    * @return A function that converts lists to options.
    */
   public static <A> F<List<A>, Option<A>> List_Option() {
-    return new F<List<A>, Option<A>>() {
-      public Option<A> f(final List<A> as) {
-        return as.toOption();
-      }
-    };
+    return List::headOption;
   }
 
   /**
@@ -63,43 +63,23 @@ public final class Conversions {
    * @return A function that converts lists to eithers.
    */
   public static <A, B> F<P1<A>, F<List<B>, Either<A, B>>> List_Either() {
-    return new F<P1<A>, F<List<B>, Either<A, B>>>() {
-      public F<List<B>, Either<A, B>> f(final P1<A> a) {
-        return new F<List<B>, Either<A, B>>() {
-          public Either<A, B> f(final List<B> bs) {
-            return bs.toEither(a);
-          }
-        };
-      }
-    };
+    return a -> bs -> bs.toEither(a);
   }
 
   /**
    * A function that converts lists to strings.
    */
-  public static final F<List<Character>, String> List_String = new F<List<Character>, String>() {
-    public String f(final List<Character> cs) {
-      return asString(cs);
-    }
-  };
+  public static final F<List<Character>, String> List_String = List::asString;
 
   /**
    * A function that converts lists to string buffers.
    */
-  public static final F<List<Character>, StringBuffer> List_StringBuffer = new F<List<Character>, StringBuffer>() {
-    public StringBuffer f(final List<Character> cs) {
-      return new StringBuffer(asString(cs));
-    }
-  };
+  public static final F<List<Character>, StringBuffer> List_StringBuffer = cs -> new StringBuffer(asString(cs));
 
   /**
    * A function that converts lists to string builders.
    */
-  public static final F<List<Character>, StringBuilder> List_StringBuilder = new F<List<Character>, StringBuilder>() {
-    public StringBuilder f(final List<Character> cs) {
-      return new StringBuilder(asString(cs));
-    }
-  };
+  public static final F<List<Character>, StringBuilder> List_StringBuilder = cs -> new StringBuilder(asString(cs));
 
   // END List ->
 
@@ -111,11 +91,7 @@ public final class Conversions {
    * @return A function that converts arrays to lists.
    */
   public static <A> F<Array<A>, List<A>> Array_List() {
-    return new F<Array<A>, List<A>>() {
-      public List<A> f(final Array<A> as) {
-        return as.toList();
-      }
-    };
+    return Array::toList;
   }
 
   /**
@@ -124,11 +100,7 @@ public final class Conversions {
    * @return A function that converts arrays to streams.
    */
   public static <A> F<Array<A>, Stream<A>> Array_Stream() {
-    return new F<Array<A>, Stream<A>>() {
-      public Stream<A> f(final Array<A> as) {
-        return as.toStream();
-      }
-    };
+    return Array::toStream;
   }
 
   /**
@@ -137,11 +109,7 @@ public final class Conversions {
    * @return A function that converts arrays to options.
    */
   public static <A> F<Array<A>, Option<A>> Array_Option() {
-    return new F<Array<A>, Option<A>>() {
-      public Option<A> f(final Array<A> as) {
-        return as.toOption();
-      }
-    };
+    return Array::toOption;
   }
 
   /**
@@ -150,62 +118,35 @@ public final class Conversions {
    * @return A function that converts arrays to eithers.
    */
   public static <A, B> F<P1<A>, F<Array<B>, Either<A, B>>> Array_Either() {
-    return new F<P1<A>, F<Array<B>, Either<A, B>>>() {
-      public F<Array<B>, Either<A, B>> f(final P1<A> a) {
-        return new F<Array<B>, Either<A, B>>() {
-          public Either<A, B> f(final Array<B> bs) {
-            return bs.toEither(a);
-          }
-        };
-      }
-    };
+    return a -> bs -> bs.toEither(a);
   }
 
   /**
    * A function that converts arrays to strings.
    */
-  public static final F<Array<Character>, String> Array_String = new F<Array<Character>, String>() {
-    public String f(final Array<Character> cs) {
-      final StringBuilder sb = new StringBuilder();
-      cs.foreach(new Effect<Character>() {
-        public void e(final Character c) {
-          sb.append(c);
-        }
-      });
+  public static final F<Array<Character>, String> Array_String = cs -> {
+      final StringBuilder sb = new StringBuilder(cs.length());
+      cs.foreachDoEffect(sb::append);
       return sb.toString();
-    }
   };
 
   /**
    * A function that converts arrays to string buffers.
    */
-  public static final F<Array<Character>, StringBuffer> Array_StringBuffer = new F<Array<Character>, StringBuffer>() {
-    public StringBuffer f(final Array<Character> cs) {
-      final StringBuffer sb = new StringBuffer();
-      cs.foreach(new Effect<Character>() {
-        public void e(final Character c) {
-          sb.append(c);
-        }
-      });
+  public static final F<Array<Character>, StringBuffer> Array_StringBuffer = cs -> {
+      final StringBuffer sb = new StringBuffer(cs.length());
+      cs.foreachDoEffect(sb::append);
       return sb;
-    }
   };
 
   /**
    * A function that converts arrays to string builders.
    */
-  public static final F<Array<Character>, StringBuilder> Array_StringBuilder =
-      new F<Array<Character>, StringBuilder>() {
-        public StringBuilder f(final Array<Character> cs) {
-          final StringBuilder sb = new StringBuilder();
-          cs.foreach(new Effect<Character>() {
-            public void e(final Character c) {
-              sb.append(c);
-            }
-          });
-          return sb;
-        }
-      };
+  public static final F<Array<Character>, StringBuilder> Array_StringBuilder = cs -> {
+      final StringBuilder sb = new StringBuilder(cs.length());
+      cs.foreachDoEffect(sb::append);
+      return sb;
+  };
 
   // END Array ->
 
@@ -217,11 +158,7 @@ public final class Conversions {
    * @return A function that converts streams to lists.
    */
   public static <A> F<Stream<A>, List<A>> Stream_List() {
-    return new F<Stream<A>, List<A>>() {
-      public List<A> f(final Stream<A> as) {
-        return as.toList();
-      }
-    };
+    return Stream::toList;
   }
 
   /**
@@ -230,11 +167,7 @@ public final class Conversions {
    * @return A function that converts streams to arrays.
    */
   public static <A> F<Stream<A>, Array<A>> Stream_Array() {
-    return new F<Stream<A>, Array<A>>() {
-      public Array<A> f(final Stream<A> as) {
-        return as.toArray();
-      }
-    };
+    return Stream::toArray;
   }
 
   /**
@@ -243,11 +176,7 @@ public final class Conversions {
    * @return A function that converts streams to options.
    */
   public static <A> F<Stream<A>, Option<A>> Stream_Option() {
-    return new F<Stream<A>, Option<A>>() {
-      public Option<A> f(final Stream<A> as) {
-        return as.toOption();
-      }
-    };
+    return Stream::toOption;
   }
 
   /**
@@ -256,63 +185,35 @@ public final class Conversions {
    * @return A function that converts streams to eithers.
    */
   public static <A, B> F<P1<A>, F<Stream<B>, Either<A, B>>> Stream_Either() {
-    return new F<P1<A>, F<Stream<B>, Either<A, B>>>() {
-      public F<Stream<B>, Either<A, B>> f(final P1<A> a) {
-        return new F<Stream<B>, Either<A, B>>() {
-          public Either<A, B> f(final Stream<B> bs) {
-            return bs.toEither(a);
-          }
-        };
-      }
-    };
+    return a -> bs -> bs.toEither(a);
   }
 
   /**
    * A function that converts streams to strings.
    */
-  public static final F<Stream<Character>, String> Stream_String = new F<Stream<Character>, String>() {
-    public String f(final Stream<Character> cs) {
+  public static final F<Stream<Character>, String> Stream_String = cs -> {
       final StringBuilder sb = new StringBuilder();
-      cs.foreach(new Effect<Character>() {
-        public void e(final Character c) {
-          sb.append(c);
-        }
-      });
+      cs.foreachDoEffect(sb::append);
       return sb.toString();
-    }
-  };
+    };
 
   /**
    * A function that converts streams to string buffers.
    */
-  public static final F<Stream<Character>, StringBuffer> Stream_StringBuffer =
-      new F<Stream<Character>, StringBuffer>() {
-        public StringBuffer f(final Stream<Character> cs) {
-          final StringBuffer sb = new StringBuffer();
-          cs.foreach(new Effect<Character>() {
-            public void e(final Character c) {
-              sb.append(c);
-            }
-          });
-          return sb;
-        }
-      };
+  public static final F<Stream<Character>, StringBuffer> Stream_StringBuffer = cs -> {
+      final StringBuffer sb = new StringBuffer();
+      cs.foreachDoEffect(sb::append);
+      return sb;
+  };
 
   /**
    * A function that converts streams to string builders.
    */
-  public static final F<Stream<Character>, StringBuilder> Stream_StringBuilder =
-      new F<Stream<Character>, StringBuilder>() {
-        public StringBuilder f(final Stream<Character> cs) {
-          final StringBuilder sb = new StringBuilder();
-          cs.foreach(new Effect<Character>() {
-            public void e(final Character c) {
-              sb.append(c);
-            }
-          });
-          return sb;
-        }
-      };
+  public static final F<Stream<Character>, StringBuilder> Stream_StringBuilder = cs -> {
+      final StringBuilder sb = new StringBuilder();
+      cs.foreachDoEffect(sb::append);
+      return sb;
+  };
 
   // END Stream ->
 
@@ -324,11 +225,7 @@ public final class Conversions {
    * @return A function that converts options to lists.
    */
   public static <A> F<Option<A>, List<A>> Option_List() {
-    return new F<Option<A>, List<A>>() {
-      public List<A> f(final Option<A> o) {
-        return o.toList();
-      }
-    };
+    return Option::toList;
   }
 
   /**
@@ -337,11 +234,7 @@ public final class Conversions {
    * @return A function that converts options to arrays.
    */
   public static <A> F<Option<A>, Array<A>> Option_Array() {
-    return new F<Option<A>, Array<A>>() {
-      public Array<A> f(final Option<A> o) {
-        return o.toArray();
-      }
-    };
+    return Option::toArray;
   }
 
   /**
@@ -350,11 +243,7 @@ public final class Conversions {
    * @return A function that converts options to streams.
    */
   public static <A> F<Option<A>, Stream<A>> Option_Stream() {
-    return new F<Option<A>, Stream<A>>() {
-      public Stream<A> f(final Option<A> o) {
-        return o.toStream();
-      }
-    };
+    return Option::toStream;
   }
 
   /**
@@ -363,47 +252,67 @@ public final class Conversions {
    * @return A function that converts options to eithers.
    */
   public static <A, B> F<P1<A>, F<Option<B>, Either<A, B>>> Option_Either() {
-    return new F<P1<A>, F<Option<B>, Either<A, B>>>() {
-      public F<Option<B>, Either<A, B>> f(final P1<A> a) {
-        return new F<Option<B>, Either<A, B>>() {
-          public Either<A, B> f(final Option<B> o) {
-            return o.toEither(a);
-          }
-        };
-      }
-    };
+    return a -> o -> o.toEither(a);
   }
 
   /**
    * A function that converts options to strings.
    */
-  public static final F<Option<Character>, String> Option_String = new F<Option<Character>, String>() {
-    public String f(final Option<Character> o) {
-      return asString(o.toList());
-    }
-  };
+  public static final F<Option<Character>, String> Option_String = o -> asString(o.toList());
 
   /**
    * A function that converts options to string buffers.
    */
-  public static final F<Option<Character>, StringBuffer> Option_StringBuffer =
-      new F<Option<Character>, StringBuffer>() {
-        public StringBuffer f(final Option<Character> o) {
-          return new StringBuffer(asString(o.toList()));
-        }
-      };
+  public static final F<Option<Character>, StringBuffer> Option_StringBuffer = o -> new StringBuffer(asString(o.toList()));
 
   /**
    * A function that converts options to string builders.
    */
-  public static final F<Option<Character>, StringBuilder> Option_StringBuilder =
-      new F<Option<Character>, StringBuilder>() {
-        public StringBuilder f(final Option<Character> o) {
-          return new StringBuilder(asString(o.toList()));
-        }
-      };
+  public static final F<Option<Character>, StringBuilder> Option_StringBuilder = o -> new StringBuilder(asString(o.toList()));
 
   // END Option ->
+
+    // BEGIN Effect
+
+    public static F<Effect0, P1<Unit>> Effect0_P1() {
+        return Conversions::Effect0_P1;
+    }
+
+    public static P1<Unit> Effect0_P1(Effect0 e) {
+        return Effect.f(e);
+    }
+
+    public static <A> F<A, Unit> Effect1_F(Effect1<A> e) {
+        return Effect.f(e);
+    }
+
+    public static <A> F<Effect1<A>, F<A, Unit>> Effect1_F() {
+        return Conversions::Effect1_F;
+    }
+
+    public static IO<Unit> Effect_IO(Effect0 e) {
+        return () ->{
+            e.f();
+            return unit();
+        };
+    }
+
+    public static F<Effect0, IO<Unit>> Effect_IO() {
+        return Conversions::Effect_IO;
+    }
+
+    public static SafeIO<Unit> Effect_SafeIO(Effect0 e) {
+        return () -> {
+            e.f();
+            return unit();
+        };
+    }
+
+    public static F<Effect0, SafeIO<Unit>> Effect_SafeIO() {
+        return Conversions::Effect_SafeIO;
+    }
+
+    // END Effect
 
   // BEGIN Either ->
 
@@ -413,11 +322,7 @@ public final class Conversions {
    * @return A function that converts eithers to lists.
    */
   public static <A, B> F<Either<A, B>, List<A>> Either_ListA() {
-    return new F<Either<A, B>, List<A>>() {
-      public List<A> f(final Either<A, B> e) {
-        return e.left().toList();
-      }
-    };
+    return e -> e.left().toList();
   }
 
   /**
@@ -426,11 +331,7 @@ public final class Conversions {
    * @return A function that converts eithers to lists.
    */
   public static <A, B> F<Either<A, B>, List<B>> Either_ListB() {
-    return new F<Either<A, B>, List<B>>() {
-      public List<B> f(final Either<A, B> e) {
-        return e.right().toList();
-      }
-    };
+    return e -> e.right().toList();
   }
 
   /**
@@ -439,11 +340,7 @@ public final class Conversions {
    * @return A function that converts eithers to arrays.
    */
   public static <A, B> F<Either<A, B>, Array<A>> Either_ArrayA() {
-    return new F<Either<A, B>, Array<A>>() {
-      public Array<A> f(final Either<A, B> e) {
-        return e.left().toArray();
-      }
-    };
+    return e -> e.left().toArray();
   }
 
   /**
@@ -452,11 +349,7 @@ public final class Conversions {
    * @return A function that converts eithers to arrays.
    */
   public static <A, B> F<Either<A, B>, Array<B>> Either_ArrayB() {
-    return new F<Either<A, B>, Array<B>>() {
-      public Array<B> f(final Either<A, B> e) {
-        return e.right().toArray();
-      }
-    };
+    return e -> e.right().toArray();
   }
 
   /**
@@ -465,11 +358,7 @@ public final class Conversions {
    * @return A function that converts eithers to streams.
    */
   public static <A, B> F<Either<A, B>, Stream<A>> Either_StreamA() {
-    return new F<Either<A, B>, Stream<A>>() {
-      public Stream<A> f(final Either<A, B> e) {
-        return e.left().toStream();
-      }
-    };
+    return e -> e.left().toStream();
   }
 
   /**
@@ -478,11 +367,7 @@ public final class Conversions {
    * @return A function that converts eithers to streams.
    */
   public static <A, B> F<Either<A, B>, Stream<B>> Either_StreamB() {
-    return new F<Either<A, B>, Stream<B>>() {
-      public Stream<B> f(final Either<A, B> e) {
-        return e.right().toStream();
-      }
-    };
+    return e -> e.right().toStream();
   }
 
   /**
@@ -491,11 +376,7 @@ public final class Conversions {
    * @return A function that converts eithers to options.
    */
   public static <A, B> F<Either<A, B>, Option<A>> Either_OptionA() {
-    return new F<Either<A, B>, Option<A>>() {
-      public Option<A> f(final Either<A, B> e) {
-        return e.left().toOption();
-      }
-    };
+    return e -> e.left().toOption();
   }
 
   /**
@@ -504,11 +385,7 @@ public final class Conversions {
    * @return A function that converts eithers to options.
    */
   public static <A, B> F<Either<A, B>, Option<B>> Either_OptionB() {
-    return new F<Either<A, B>, Option<B>>() {
-      public Option<B> f(final Either<A, B> e) {
-        return e.right().toOption();
-      }
-    };
+    return e -> e.right().toOption();
   }
 
   /**
@@ -517,11 +394,7 @@ public final class Conversions {
    * @return A function that converts eithers to strings.
    */
   public static <B> F<Either<Character, B>, String> Either_StringA() {
-    return new F<Either<Character, B>, String>() {
-      public String f(final Either<Character, B> e) {
-        return asString(e.left().toList());
-      }
-    };
+    return e -> asString(e.left().toList());
   }
 
   /**
@@ -530,11 +403,7 @@ public final class Conversions {
    * @return A function that converts eithers to strings.
    */
   public static <A> F<Either<A, Character>, String> Either_StringB() {
-    return new F<Either<A, Character>, String>() {
-      public String f(final Either<A, Character> e) {
-        return asString(e.right().toList());
-      }
-    };
+    return e -> asString(e.right().toList());
   }
 
   /**
@@ -543,11 +412,7 @@ public final class Conversions {
    * @return A function that converts eithers to string buffers.
    */
   public static <B> F<Either<Character, B>, StringBuffer> Either_StringBufferA() {
-    return new F<Either<Character, B>, StringBuffer>() {
-      public StringBuffer f(final Either<Character, B> e) {
-        return new StringBuffer(asString(e.left().toList()));
-      }
-    };
+    return e -> new StringBuffer(asString(e.left().toList()));
   }
 
   /**
@@ -556,11 +421,7 @@ public final class Conversions {
    * @return A function that converts eithers to string buffers.
    */
   public static <A> F<Either<A, Character>, StringBuffer> Either_StringBufferB() {
-    return new F<Either<A, Character>, StringBuffer>() {
-      public StringBuffer f(final Either<A, Character> e) {
-        return new StringBuffer(asString(e.right().toList()));
-      }
-    };
+    return e -> new StringBuffer(asString(e.right().toList()));
   }
 
   /**
@@ -569,11 +430,7 @@ public final class Conversions {
    * @return A function that converts eithers to string builders.
    */
   public static <B> F<Either<Character, B>, StringBuilder> Either_StringBuilderA() {
-    return new F<Either<Character, B>, StringBuilder>() {
-      public StringBuilder f(final Either<Character, B> e) {
-        return new StringBuilder(asString(e.left().toList()));
-      }
-    };
+    return e -> new StringBuilder(asString(e.left().toList()));
   }
 
   /**
@@ -582,43 +439,39 @@ public final class Conversions {
    * @return A function that converts eithers to string builders.
    */
   public static <A> F<Either<A, Character>, StringBuilder> Either_StringBuilderB() {
-    return new F<Either<A, Character>, StringBuilder>() {
-      public StringBuilder f(final Either<A, Character> e) {
-        return new StringBuilder(asString(e.right().toList()));
-      }
-    };
+    return e -> new StringBuilder(asString(e.right().toList()));
   }
 
   // END Either ->
+
+    // BEGIN F
+
+    public static <A> SafeIO<A> F_SafeIO(F<Unit, A> f) {
+        return () -> f.f(unit());
+    }
+
+    public static <A> F<F<Unit, A>, SafeIO<A>> F_SafeIO() {
+        return Conversions::F_SafeIO;
+    }
+
+    // END F
 
   // BEGIN String ->
 
   /**
    * A function that converts strings to lists.
    */
-  public static final F<String, List<Character>> String_List = new F<String, List<Character>>() {
-    public List<Character> f(final String s) {
-      return fromString(s);
-    }
-  };
+  public static final F<String, List<Character>> String_List = List::fromString;
 
   /**
    * A function that converts strings to arrays.
    */
-  public static final F<String, Array<Character>> String_Array = new F<String, Array<Character>>() {
-    public Array<Character> f(final String s) {
-      return fromString(s).toArray();
-    }
-  };
+  public static final F<String, Array<Character>> String_Array = s -> fromString(s).toArray();
 
   /**
    * A function that converts strings to options.
    */
-  public static final F<String, Option<Character>> String_Option = new F<String, Option<Character>>() {
-    public Option<Character> f(final String s) {
-      return fromString(s).toOption();
-    }
-  };
+  public static final F<String, Option<Character>> String_Option = s -> fromString(s).headOption();
 
   /**
    * A function that converts string to eithers.
@@ -626,43 +479,23 @@ public final class Conversions {
    * @return A function that converts string to eithers.
    */
   public static <A> F<P1<A>, F<String, Either<A, Character>>> String_Either() {
-    return new F<P1<A>, F<String, Either<A, Character>>>() {
-      public F<String, Either<A, Character>> f(final P1<A> a) {
-        return new F<String, Either<A, Character>>() {
-          public Either<A, Character> f(final String s) {
-            return fromString(s).toEither(a);
-          }
-        };
-      }
-    };
+    return a -> s -> fromString(s).toEither(a);
   }
 
   /**
    * A function that converts strings to streams.
    */
-  public static final F<String, Stream<Character>> String_Stream = new F<String, Stream<Character>>() {
-    public Stream<Character> f(final String s) {
-      return fromString(s).toStream();
-    }
-  };
+  public static final F<String, Stream<Character>> String_Stream = s -> fromString(s).toStream();
 
   /**
    * A function that converts strings to string buffers.
    */
-  public static final F<String, StringBuffer> String_StringBuffer = new F<String, StringBuffer>() {
-    public StringBuffer f(final String s) {
-      return new StringBuffer(s);
-    }
-  };
+  public static final F<String, StringBuffer> String_StringBuffer = StringBuffer::new;
 
   /**
    * A function that converts strings to string builders.
    */
-  public static final F<String, StringBuilder> String_StringBuilder = new F<String, StringBuilder>() {
-    public StringBuilder f(final String s) {
-      return new StringBuilder(s);
-    }
-  };
+  public static final F<String, StringBuilder> String_StringBuilder = StringBuilder::new;
 
   // END String ->
 
@@ -671,40 +504,22 @@ public final class Conversions {
   /**
    * A function that converts string buffers to lists.
    */
-  public static final F<StringBuffer, List<Character>> StringBuffer_List = new F<StringBuffer, List<Character>>() {
-    public List<Character> f(final StringBuffer s) {
-      return fromString(s.toString());
-    }
-  };
+  public static final F<StringBuffer, List<Character>> StringBuffer_List = s -> fromString(s.toString());
 
   /**
    * A function that converts string buffers to arrays.
    */
-  public static final F<StringBuffer, Array<Character>> StringBuffer_Array = new F<StringBuffer, Array<Character>>() {
-    public Array<Character> f(final StringBuffer s) {
-      return fromString(s.toString()).toArray();
-    }
-  };
+  public static final F<StringBuffer, Array<Character>> StringBuffer_Array = s -> fromString(s.toString()).toArray();
 
   /**
    * A function that converts string buffers to streams.
    */
-  public static final F<StringBuffer, Stream<Character>> StringBuffer_Stream =
-      new F<StringBuffer, Stream<Character>>() {
-        public Stream<Character> f(final StringBuffer s) {
-          return fromString(s.toString()).toStream();
-        }
-      };
+  public static final F<StringBuffer, Stream<Character>> StringBuffer_Stream = s -> fromString(s.toString()).toStream();
 
   /**
    * A function that converts string buffers to options.
    */
-  public static final F<StringBuffer, Option<Character>> StringBuffer_Option =
-      new F<StringBuffer, Option<Character>>() {
-        public Option<Character> f(final StringBuffer s) {
-          return fromString(s.toString()).toOption();
-        }
-      };
+  public static final F<StringBuffer, Option<Character>> StringBuffer_Option = s -> fromString(s.toString()).headOption();
 
   /**
    * A function that converts string buffers to eithers.
@@ -712,34 +527,18 @@ public final class Conversions {
    * @return A function that converts string buffers to eithers.
    */
   public static <A> F<P1<A>, F<StringBuffer, Either<A, Character>>> StringBuffer_Either() {
-    return new F<P1<A>, F<StringBuffer, Either<A, Character>>>() {
-      public F<StringBuffer, Either<A, Character>> f(final P1<A> a) {
-        return new F<StringBuffer, Either<A, Character>>() {
-          public Either<A, Character> f(final StringBuffer s) {
-            return fromString(s.toString()).toEither(a);
-          }
-        };
-      }
-    };
+    return a -> s -> fromString(s.toString()).toEither(a);
   }
 
   /**
    * A function that converts string buffers to strings.
    */
-  public static final F<StringBuffer, String> StringBuffer_String = new F<StringBuffer, String>() {
-    public String f(final StringBuffer s) {
-      return s.toString();
-    }
-  };
+  public static final F<StringBuffer, String> StringBuffer_String = StringBuffer::toString;
 
   /**
    * A function that converts string buffers to string builders.
    */
-  public static final F<StringBuffer, StringBuilder> StringBuffer_StringBuilder = new F<StringBuffer, StringBuilder>() {
-    public StringBuilder f(final StringBuffer s) {
-      return new StringBuilder(s);
-    }
-  };
+  public static final F<StringBuffer, StringBuilder> StringBuffer_StringBuilder = StringBuilder::new;
 
   // END StringBuffer ->
 
@@ -748,41 +547,22 @@ public final class Conversions {
   /**
    * A function that converts string builders to lists.
    */
-  public static final F<StringBuilder, List<Character>> StringBuilder_List = new F<StringBuilder, List<Character>>() {
-    public List<Character> f(final StringBuilder s) {
-      return fromString(s.toString());
-    }
-  };
+  public static final F<StringBuilder, List<Character>> StringBuilder_List = s -> fromString(s.toString());
 
   /**
    * A function that converts string builders to arrays.
    */
-  public static final F<StringBuilder, Array<Character>> StringBuilder_Array =
-      new F<StringBuilder, Array<Character>>() {
-        public Array<Character> f(final StringBuilder s) {
-          return fromString(s.toString()).toArray();
-        }
-      };
+  public static final F<StringBuilder, Array<Character>> StringBuilder_Array = s -> fromString(s.toString()).toArray();
 
   /**
    * A function that converts string builders to streams.
    */
-  public static final F<StringBuilder, Stream<Character>> StringBuilder_Stream =
-      new F<StringBuilder, Stream<Character>>() {
-        public Stream<Character> f(final StringBuilder s) {
-          return fromString(s.toString()).toStream();
-        }
-      };
+  public static final F<StringBuilder, Stream<Character>> StringBuilder_Stream = s -> fromString(s.toString()).toStream();
 
   /**
    * A function that converts string builders to options.
    */
-  public static final F<StringBuilder, Option<Character>> StringBuilder_Option =
-      new F<StringBuilder, Option<Character>>() {
-        public Option<Character> f(final StringBuilder s) {
-          return fromString(s.toString()).toOption();
-        }
-      };
+  public static final F<StringBuilder, Option<Character>> StringBuilder_Option = s -> fromString(s.toString()).headOption();
 
   /**
    * A function that converts string builders to eithers.
@@ -790,34 +570,57 @@ public final class Conversions {
    * @return A function that converts string builders to eithers.
    */
   public static <A> F<P1<A>, F<StringBuilder, Either<A, Character>>> StringBuilder_Either() {
-    return new F<P1<A>, F<StringBuilder, Either<A, Character>>>() {
-      public F<StringBuilder, Either<A, Character>> f(final P1<A> a) {
-        return new F<StringBuilder, Either<A, Character>>() {
-          public Either<A, Character> f(final StringBuilder s) {
-            return fromString(s.toString()).toEither(a);
-          }
-        };
-      }
-    };
+    return a -> s -> fromString(s.toString()).toEither(a);
   }
 
   /**
    * A function that converts string builders to strings.
    */
-  public static final F<StringBuilder, String> StringBuilder_String = new F<StringBuilder, String>() {
-    public String f(final StringBuilder s) {
-      return s.toString();
-    }
-  };
+  public static final F<StringBuilder, String> StringBuilder_String = StringBuilder::toString;
 
   /**
    * A function that converts string builders to string buffers.
    */
-  public static final F<StringBuilder, StringBuffer> StringBuilder_StringBuffer = new F<StringBuilder, StringBuffer>() {
-    public StringBuffer f(final StringBuilder s) {
-      return new StringBuffer(s);
-    }
-  };
+  public static final F<StringBuilder, StringBuffer> StringBuilder_StringBuffer = StringBuffer::new;
 
   // END StringBuilder ->
+
+
+    // BEGIN Try
+
+    public static <A, B, Z extends Exception> SafeIO<Validation<Z, A>> Try_SafeIO(Try0<A, Z> t) {
+        return F_SafeIO(u -> Try.f(t)._1());
+    }
+
+    public static <A, B, Z extends Exception> F<Try0<A, Z>, SafeIO<Validation<Z, A>>> Try_SafeIO() {
+        return Conversions::Try_SafeIO;
+    }
+
+    public static <A, B, Z extends IOException> IO<A> Try_IO(Try0<A, Z> t) {
+        return t::f;
+    }
+
+    public static <A, B, Z extends IOException> F<Try0<A, Z>, IO<A>> Try_IO() {
+        return Conversions::Try_IO;
+    }
+
+    public static <A, B, Z extends IOException> F<A, Validation<Z, B>> Try_F(Try1<A, B, Z> t) {
+        return Try.f(t);
+    }
+
+    public static <A, B, Z extends IOException> F<Try1<A, B, Z>, F<A, Validation<Z, B>>> Try_F() {
+        return Conversions::Try_F;
+    }
+
+    // END Try
+
+    // BEGIN TryEffect
+
+    public static <E extends Exception> P1<Validation<E, Unit>> TryEffect_P(final TryEffect0<E> t) {
+        return TryEffect.f(t);
+    }
+
+
+    // END TryEffect
+
 }

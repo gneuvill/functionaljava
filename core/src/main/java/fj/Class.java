@@ -2,7 +2,6 @@ package fj;
 
 import fj.data.List;
 import static fj.data.List.unfold;
-import fj.data.Option;
 import static fj.data.Option.none;
 import static fj.data.Option.some;
 import fj.data.Tree;
@@ -29,31 +28,24 @@ public final class Class<T> {
    */
   public List<Class<? super T>> inheritance() {
     return unfold(
-        new F<java.lang.Class<? super T>, Option<P2<java.lang.Class<? super T>, java.lang.Class<? super T>>>>() {
-          public Option<P2<java.lang.Class<? super T>, java.lang.Class<? super T>>> f(
-              final java.lang.Class<? super T> c) {
-            if (c == null)
-              return none();
-            else {
-              final P2<java.lang.Class<? super T>, java.lang.Class<? super T>> p =
-                  new P2<java.lang.Class<? super T>, java.lang.Class<? super T>>() {
-                    public java.lang.Class<? super T> _1() {
-                      return c;
-                    }
+            (java.lang.Class<? super T> c2) -> {
+              if (c2 == null)
+                return none();
+              else {
+                final P2<java.lang.Class<? super T>, java.lang.Class<? super T>> p =
+                    new P2<java.lang.Class<? super T>, java.lang.Class<? super T>>() {
+                      public java.lang.Class<? super T> _1() {
+                        return c2;
+                      }
 
-                    @SuppressWarnings({"unchecked"})
-                    public java.lang.Class<? super T> _2() {
-                      return c.getSuperclass();
-                    }
-                  };
-              return some(p);
-            }
-          }
-        }, c).map(new F<java.lang.Class<? super T>, Class<? super T>>() {
-      public Class<? super T> f(final java.lang.Class<? super T> c) {
-        return clas(c);
-      }
-    });
+                      @SuppressWarnings("unchecked")
+                      public java.lang.Class<? super T> _2() {
+                        return c2.getSuperclass();
+                      }
+                    };
+                return some(p);
+              }
+            }, c).map(Class::clas);
   }
 
   /**
@@ -109,7 +101,7 @@ public final class Class<T> {
       }
       types = Tree.node(pt.getRawType(), typeArgs);
     } else {
-      types = Tree.node(t, List.<Tree<Type>>nil());
+      types = Tree.node(t, List.nil());
     }
     return types;
   }
@@ -130,6 +122,6 @@ public final class Class<T> {
    * @return A class from the given argument.
    */
   public static <T> Class<T> clas(final java.lang.Class<T> c) {
-    return new Class<T>(c);
+    return new Class<>(c);
   }
 }

@@ -2,6 +2,7 @@ package fj.control.db;
 
 import fj.F;
 import fj.Function;
+import fj.function.Try1;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -36,20 +37,27 @@ public abstract class DB<A> {
   }
 
   /**
+   * Constructs a database action as a function from a database connection to a value.
+   *
+   * @param t A function from a database connection to a value allowed to throw
+   *          SQLException
+   * @return A database action representing the given function.
+   */
+  public static <A> DB<A> db(final Try1<Connection, A, SQLException> t){
+    return new DB<A>() {
+      public A run(final Connection c) throws SQLException {
+        return t.f(c);
+      }
+    };
+  }
+
+  /**
    * Returns the callable-valued function projection of this database action.
    *
    * @return The callable-valued function which is isomorphic to this database action.
    */
   public final F<Connection, Callable<A>> asFunction() {
-    return new F<Connection, Callable<A>>() {
-      public Callable<A> f(final Connection c) {
-        return new Callable<A>() {
-          public A call() throws Exception {
-            return run(c);
-          }
-        };
-      }
-    };
+    return c -> () -> run(c);
   }
 
   /**
@@ -73,11 +81,7 @@ public abstract class DB<A> {
    * @return A function equivalent to the given one, which operates on values in the database.
    */
   public static <A, B> F<DB<A>, DB<B>> liftM(final F<A, B> f) {
-    return new F<DB<A>, DB<B>>() {
-      public DB<B> f(final DB<A> a) {
-        return a.map(f);
-      }
-    };
+    return a -> a.map(f);
   }
 
   /**
@@ -115,6 +119,6 @@ public abstract class DB<A> {
    * @return A new database action equivalent to the result of the given action.
    */
   public static <A> DB<A> join(final DB<DB<A>> a) {
-    return a.bind(Function.<DB<A>>identity());
+    return a.bind(Function.identity());
   }
 }

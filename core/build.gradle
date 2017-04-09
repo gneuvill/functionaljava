@@ -1,0 +1,19 @@
+
+ext {
+    signModule = true
+}
+
+archivesBaseName = project.projectName
+
+dependencies {
+    testCompile dependencyJunit
+    testCompile 'com.h2database:h2:1.4.191'
+    testCompile 'commons-dbutils:commons-dbutils:1.6'
+}
+
+performSigning(signingEnabled, signModule)
+configureUpload(signingEnabled, signModule)
+
+uploadArchives.enabled = true
+
+configureAllRetroLambda()

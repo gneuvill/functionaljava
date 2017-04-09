@@ -2,10 +2,12 @@ package fj.control.parallel;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+
 import fj.Effect;
 import fj.F;
 import fj.Unit;
 import fj.P1;
+import fj.function.Effect1;
 
 /**
  * Light weight actors for Java. Concurrency is controlled by a parallel Strategy.
@@ -30,24 +32,24 @@ public final class Actor<A> {
    * With respect to an enqueueing actor or thread, this actor will process messages in the same order
    * as they are sent.
    */
-  public static <T> Actor<T> queueActor(final Strategy<Unit> s, final Effect<T> ea) {
-    return actor(Strategy.<Unit>seqStrategy(), new Effect<T>() {
+  public static <T> Actor<T> queueActor(final Strategy<Unit> s, final Effect1<T> ea) {
+    return actor(Strategy.seqStrategy(), new Effect1<T>() {
 
       // Lock to ensure the actor only acts on one message at a time
-      AtomicBoolean suspended = new AtomicBoolean(true);
+      final AtomicBoolean suspended = new AtomicBoolean(true);
 
       // Queue to hold pending messages
-      ConcurrentLinkedQueue<T> mbox = new ConcurrentLinkedQueue<T>();
+      final ConcurrentLinkedQueue<T> mbox = new ConcurrentLinkedQueue<>();
 
       // Product so the actor can use its strategy (to act on messages in other threads,
       // to handle exceptions, etc.)
-      P1<Unit> processor = new P1<Unit>() {
+      final P1<Unit> processor = new P1<Unit>() {
         @Override public Unit _1() {
           // get next item from queue
           T a = mbox.poll();
           // if there is one, process it
           if (a != null) {
-            ea.e(a);
+            ea.f(a);
             // try again, in case there are more messages
             s.par(this);
           } else {
@@ -61,27 +63,23 @@ public final class Actor<A> {
       };
       
       // Effect's body -- queues up a message and tries to unsuspend the actor
-      @Override public void e(T a) {
+      @Override public void f(T a) {
         mbox.offer(a);
         work();
       }
 
       // If there are pending messages, use the strategy to run the processor
-      protected void work() {
+      void work() {
         if (!mbox.isEmpty() && suspended.compareAndSet(true, false)) {
           s.par(processor);
         }
       }
     });
-  };
+  }
   
   private Actor(final Strategy<Unit> s, final F<A, P1<Unit>> e) {
     this.s = s;
-    f = new F<A, P1<Unit>>() {
-      public P1<Unit> f(final A a) {
-        return s.par(e.f(a));
-      }
-    };
+    f = a -> s.par(e.f(a));
   }
 
   /**
@@ -91,8 +89,8 @@ public final class Actor<A> {
    * @param e The side-effect to apply to messages passed to the Actor.
    * @return A new actor that uses the given parallelization strategy and has the given side-effect.
    */
-  public static <A> Actor<A> actor(final Strategy<Unit> s, final Effect<A> e) {
-    return new Actor<A>(s, P1.curry(e.e()));
+  public static <A> Actor<A> actor(final Strategy<Unit> s, final Effect1<A> e) {
+    return new Actor<>(s, P1.curry(Effect.f(e)));
   }
 
   /**
@@ -103,7 +101,7 @@ public final class Actor<A> {
    * @return A new actor that uses the given parallelization strategy and has the given side-effect.
    */
   public static <A> Actor<A> actor(final Strategy<Unit> s, final F<A, P1<Unit>> e) {
-    return new Actor<A>(s, e);
+    return new Actor<>(s, e);
   }
 
   /**
@@ -124,12 +122,8 @@ public final class Actor<A> {
    * @param f The function to use for the transformation
    * @return A new actor which passes its messages through the given function, to this actor.
    */
-  public <B> Actor<B> comap(final F<B, A> f) {
-    return actor(s, new F<B, P1<Unit>>() {
-      public P1<Unit> f(final B b) {
-        return act(f.f(b));
-      }
-    });
+  public <B> Actor<B> contramap(final F<B, A> f) {
+    return actor(s, (B b) -> act(f.f(b)));
   }
 
   /**
@@ -138,11 +132,7 @@ public final class Actor<A> {
    * @return A new actor, equivalent to this actor, that acts on promises.
    */
   public Actor<Promise<A>> promise() {
-    return actor(s, new Effect<Promise<A>>() {
-      public void e(final Promise<A> b) {
-        b.to(Actor.this);
-      }
-    });
+    return actor(s, (Promise<A> b) -> b.to(Actor.this));
   }
 
 }

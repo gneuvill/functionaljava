@@ -1,17 +1,13 @@
 package fj.function;
 
 import fj.F;
-import fj.F2;
 import fj.Monoid;
 import fj.data.List;
 import fj.data.Option;
 
 import static fj.Function.curry;
-import static fj.Semigroup.doubleAdditionSemigroup;
-import static fj.Semigroup.doubleMultiplicationSemigroup;
 import static fj.data.Option.none;
 import static fj.data.Option.some;
-import static java.lang.Math.abs;
 
 /**
  * Curried functions over Doubles.
@@ -26,66 +22,42 @@ public final class Doubles {
   /**
    * Curried Double addition.
    */
-  public static final F<Double, F<Double, Double>> add = doubleAdditionSemigroup.sum();
+  public static final F<Double, F<Double, Double>> add = x -> y -> x + y;
 
   /**
    * Curried Double multiplication.
    */
-  public static final F<Double, F<Double, Double>> multiply = doubleMultiplicationSemigroup.sum();
+  public static final F<Double, F<Double, Double>> multiply = x -> y -> x * y;
 
   /**
    * Curried Double subtraction.
    */
-  public static final F<Double, F<Double, Double>> subtract = curry(new F2<Double, Double, Double>() {
-    public Double f(final Double x, final Double y) {
-      return x - y;
-    }
-  });
+  public static final F<Double, F<Double, Double>> subtract = x -> y -> x - y;
 
   /**
    * Negation.
    */
-  public static final F<Double, Double> negate = new F<Double, Double>() {
-    public Double f(final Double x) {
-      return x * -1;
-    }
-  };
+  public static final F<Double, Double> negate = x -> x * -1;
 
   /**
    * Absolute value.
    */
-  public static final F<Double, Double> abs = new F<Double, Double>() {
-    public Double f(final Double x) {
-      return abs(x);
-    }
-  };
+  public static final F<Double, Double> abs = Math::abs;
 
   /**
    * Remainder.
    */
-  public static final F<Double, F<Double, Double>> remainder = curry(new F2<Double, Double, Double>() {
-    public Double f(final Double a, final Double b) {
-      return a % b;
-    }
-  });
+  public static final F<Double, F<Double, Double>> remainder = x -> y -> x % y;
 
   /**
    * Power.
    */
-  public static final F<Double, F<Double, Double>> power = curry(new F2<Double, Double, Double>() {
-    public Double f(final Double a, final Double b) {
-      return StrictMath.pow(a, b);
-    }
-  });
+  public static final F<Double, F<Double, Double>> power = x -> y -> StrictMath.pow(x, y);
 
   /**
    * Evenness.
    */
-  public static final F<Double, Boolean> even = new F<Double, Boolean>() {
-    public Boolean f(final Double i) {
-      return i % 2 == 0;
-    }
-  };
+  public static final F<Double, Boolean> even = i -> i % 2 == 0;
 
   /**
    * Sums a list of doubles.
@@ -94,7 +66,7 @@ public final class Doubles {
    * @return The sum of the doubless in the list.
    */
   public static double sum(final List<Double> doubles) {
-    return Monoid.doubleAdditionMonoid.sumLeft(doubles);
+    return doubles.foldLeft((x, y) -> x + y, 0.0);
   }
 
   /**
@@ -104,7 +76,7 @@ public final class Doubles {
    * @return The product of the doubles in the list.
    */
   public static double product(final List<Double> doubles) {
-    return Monoid.doubleMultiplicationMonoid.sumLeft(doubles);
+    return doubles.foldLeft((x, y) -> x * y, 1.0);
   }
 
   /**
@@ -113,49 +85,32 @@ public final class Doubles {
    * @return A function that converts strings to doubles.
    */
   public static F<String, Option<Double>> fromString() {
-    return new F<String, Option<Double>>() {
-      public Option<Double> f(final String s) {
+    return s -> {
         try { return some(Double.valueOf(s)); }
         catch (final NumberFormatException ignored) {
           return none();
         }
-      }
     };
   }
 
   /**
    * A function that returns true if the given double is greater than zero.
    */
-  public static final F<Double, Boolean> gtZero = new F<Double, Boolean>() {
-    public Boolean f(final Double i) {
-      return Double.compare(i, 0) > 0;
-    }
-  };
+  public static final F<Double, Boolean> gtZero = i -> Double.compare(i, 0) > 0;
 
   /**
    * A function that returns true if the given double is greater than or equal to zero.
    */
-  public static final F<Double, Boolean> gteZero = new F<Double, Boolean>() {
-    public Boolean f(final Double i) {
-      return Double.compare(i, 0) >= 0;
-    }
-  };
+  public static final F<Double, Boolean> gteZero = i -> Double.compare(i, 0) >= 0;
 
   /**
    * A function that returns true if the given double is less than zero.
    */
-  public static final F<Double, Boolean> ltZero = new F<Double, Boolean>() {
-    public Boolean f(final Double i) {
-      return Double.compare(i, 0) < 0;
-    }
-  };
+  public static final F<Double, Boolean> ltZero = i -> Double.compare(i, 0) < 0;
 
   /**
    * A function that returns true if the given double is less than or equal to zero.
    */
-  public static final F<Double, Boolean> lteZero = new F<Double, Boolean>() {
-    public Boolean f(final Double i) {
-      return Double.compare(i, 0) <= 0;
-    }
-  };
+  public static final F<Double, Boolean> lteZero = i -> Double.compare(i, 0) <= 0;
+
 }

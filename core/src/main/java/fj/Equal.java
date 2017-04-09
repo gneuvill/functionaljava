@@ -1,17 +1,21 @@
 package fj;
 
-import static fj.Function.curry;
-import fj.data.hlist.HList;
 import fj.data.Array;
 import fj.data.Either;
 import fj.data.LazyString;
 import fj.data.List;
+import fj.data.Natural;
 import fj.data.NonEmptyList;
 import fj.data.Option;
+import fj.data.Seq;
 import fj.data.Set;
 import fj.data.Stream;
 import fj.data.Tree;
+import fj.data.TreeMap;
 import fj.data.Validation;
+import fj.data.Writer;
+import fj.data.hamt.BitSet;
+import fj.data.hlist.HList;
 import fj.data.vector.V2;
 import fj.data.vector.V3;
 import fj.data.vector.V4;
@@ -20,8 +24,12 @@ import fj.data.vector.V6;
 import fj.data.vector.V7;
 import fj.data.vector.V8;
 
-import java.math.BigInteger;
 import java.math.BigDecimal;
+import java.math.BigInteger;
+
+import static fj.Function.compose;
+import static fj.Function.constant;
+import static fj.Function.curry;
 
 /**
  * Tests for equality between two objects.
@@ -29,10 +37,37 @@ import java.math.BigDecimal;
  * @version %build.number%
  */
 public final class Equal<A> {
-  private final F<A, F<A, Boolean>> f;
 
-  private Equal(final F<A, F<A, Boolean>> f) {
-    this.f = f;
+  /**
+   * Primitives functions of Equal: minimal definition and overridable methods.
+   */
+  public interface Definition<A> {
+
+    F<A, Boolean> equal(A a);
+
+    default boolean equal(A a1, A a2) {
+      return equal(a1).f(a2);
+    }
+  }
+
+  /**
+   * Primitives functions of Equal: alternative minimal definition and overridable methods.
+   */
+  public interface AltDefinition<A> extends Definition<A> {
+
+    @Override
+    boolean equal(A a1, A a2);
+
+    @Override
+    default F<A, Boolean> equal(A a) {
+      return a2 -> equal(a, a2);
+    }
+  }
+
+  private final Definition<A> def;
+
+  private Equal(final Definition<A> def) {
+    this.def = def;
   }
 
   /**
@@ -43,7 +78,18 @@ public final class Equal<A> {
    * @return <code>true</code> if the two given arguments are equal, <code>false</code> otherwise.
    */
   public boolean eq(final A a1, final A a2) {
-    return f.f(a1).f(a2);
+    return def.equal(a1, a2);
+  }
+
+  /**
+   * Returns <code>true</code> if the two given arguments are not equal, <code>false</code> otherwise.
+   *
+   * @param a1 An object to test for inequality against another.
+   * @param a2 An object to test for inequality against another.
+   * @return <code>true</code> if the two given arguments are not equal, <code>false</code> otherwise.
+   */
+  public boolean notEq(final A a1, final A a2) {
+    return !def.equal(a1, a2);
   }
 
   /**
@@ -52,11 +98,7 @@ public final class Equal<A> {
    * @return A function that returns <code>true</code> if the two given arguments are equal.
    */
   public F2<A, A, Boolean> eq() {
-    return new F2<A, A, Boolean>() {
-      public Boolean f(final A a, final A a1) {
-        return eq(a, a1);
-      }
-    };
+    return def::equal;
   }
 
   /**
@@ -66,11 +108,7 @@ public final class Equal<A> {
    * @return A function that returns <code>true</code> if the given argument equals the argument to this method.
    */
   public F<A, Boolean> eq(final A a) {
-    return new F<A, Boolean>() {
-      public Boolean f(final A a1) {
-        return eq(a, a1);
-      }
-    };
+    return def.equal(a);
   }
 
   /**
@@ -79,18 +117,64 @@ public final class Equal<A> {
    * @param f The function to map.
    * @return A new equal.
    */
-  public <B> Equal<B> comap(final F<B, A> f) {
-    return equal(f.<Boolean>andThen().o(this.f).o(f));
+  public <B> Equal<B> contramap(final F<B, A> f) {
+    Definition<A> eaDef = def;
+    return equalDef(new Definition<B>(){
+      @Override
+      public F<B, Boolean> equal(B b) {
+        return compose(eaDef.equal(f.f(b)), f);
+      }
+
+      @Override
+      public boolean equal(B b1, B b2) {
+        return eaDef.equal(f.f(b1), f.f(b2));
+      }
+    });
   }
 
   /**
    * Constructs an equal instance from the given function.
    *
+   * Java 8+ users: use {@link #equalDef(Definition)} instead.
+   *
    * @param f The function to construct the equal with.
    * @return An equal instance from the given function.
    */
   public static <A> Equal<A> equal(final F<A, F<A, Boolean>> f) {
-    return new Equal<A>(f);
+    return new Equal<>(f::f);
+  }
+
+
+  /**
+   * Constructs an equal instance from the given function.
+   *
+   * Java 8+ users: use {@link #equalDef(AltDefinition)} instead.
+   *
+   * @param f The function to construct the equal with.
+   * @return An equal instance from the given function.
+   */
+  public static <A> Equal<A> equal(final F2<A, A, Boolean> f) {
+    return equalDef(f::f);
+  }
+
+  /**
+   * Constructs an equal instance from the given definition.
+   *
+   * @param definition a definition of the equal instance.
+   * @return An equal instance from the given function.
+   */
+  public static <A> Equal<A> equalDef(final Definition<A> definition) {
+    return new Equal<>(definition);
+  }
+
+  /**
+   * Constructs an equal instance from the given (alternative) definition.
+   *
+   * @param definition a definition of the equal instance.
+   * @return An equal instance from the given function.
+   */
+  public static <A> Equal<A> equalDef(final AltDefinition<A> definition) {
+    return new Equal<>(definition);
   }
 
   /**
@@ -101,13 +185,15 @@ public final class Equal<A> {
    *         equality.
    */
   public static <A> Equal<A> anyEqual() {
-    return new Equal<A>(new F<A, F<A, Boolean>>() {
-      public F<A, Boolean> f(final A a1) {
-        return new F<A, Boolean>() {
-          public Boolean f(final A a2) {
-            return a1.equals(a2);
-          }
-        };
+    return equalDef(new Definition<A>() {
+      @Override
+      public F<A, Boolean> equal(A a) {
+        return a::equals;
+      }
+
+      @Override
+      public boolean equal(A a1, A a2) {
+        return a1.equals(a2);
       }
     });
   }
@@ -163,6 +249,11 @@ public final class Equal<A> {
   public static final Equal<Short> shortEqual = anyEqual();
 
   /**
+   * An equal instance for the <code>Natural</code> type.
+   */
+  public static final Equal<Natural> naturalEqual = bigintEqual.contramap(Natural::bigIntegerValue);
+
+  /**
    * An equal instance for the {@link String} type.
    */
   public static final Equal<String> stringEqual = anyEqual();
@@ -171,41 +262,34 @@ public final class Equal<A> {
    * An equal instance for the {@link StringBuffer} type.
    */
   public static final Equal<StringBuffer> stringBufferEqual =
-      new Equal<StringBuffer>(new F<StringBuffer, F<StringBuffer, Boolean>>() {
-        public F<StringBuffer, Boolean> f(final StringBuffer sb1) {
-          return new F<StringBuffer, Boolean>() {
-            public Boolean f(final StringBuffer sb2) {
-              if (sb1.length() == sb2.length()) {
-                for (int i = 0; i < sb1.length(); i++)
-                  if (sb1.charAt(i) != sb2.charAt(i))
-                    return false;
-                return true;
-              } else
-                return false;
-            }
-          };
-        }
+      equalDef((sb1, sb2) -> {
+        if (sb1.length() == sb2.length()) {
+          for (int i = 0; i < sb1.length(); i++)
+            if (sb1.charAt(i) != sb2.charAt(i))
+              return false;
+          return true;
+        } else
+          return false;
       });
 
   /**
    * An equal instance for the {@link StringBuilder} type.
    */
   public static final Equal<StringBuilder> stringBuilderEqual =
-      new Equal<StringBuilder>(new F<StringBuilder, F<StringBuilder, Boolean>>() {
-        public F<StringBuilder, Boolean> f(final StringBuilder sb1) {
-          return new F<StringBuilder, Boolean>() {
-            public Boolean f(final StringBuilder sb2) {
-              if (sb1.length() == sb2.length()) {
-                for (int i = 0; i < sb1.length(); i++)
-                  if (sb1.charAt(i) != sb2.charAt(i))
-                    return false;
-                return true;
-              } else
-                return false;
-            }
-          };
-        }
+      equalDef((sb1, sb2) -> {
+        if (sb1.length() == sb2.length()) {
+          for (int i = 0; i < sb1.length(); i++)
+            if (sb1.charAt(i) != sb2.charAt(i))
+              return false;
+          return true;
+        } else
+          return false;
       });
+
+  /**
+   * An equal instance for the {@link BitSet} type.
+   */
+  public static final Equal<BitSet> bitSetSequal = equalDef((bs1, bs2) -> bs1.longValue() == bs2.longValue());
 
   /**
    * An equal instance for the {@link Either} type.
@@ -215,16 +299,12 @@ public final class Equal<A> {
    * @return An equal instance for the {@link Either} type.
    */
   public static <A, B> Equal<Either<A, B>> eitherEqual(final Equal<A> ea, final Equal<B> eb) {
-    return new Equal<Either<A, B>>(new F<Either<A, B>, F<Either<A, B>, Boolean>>() {
-      public F<Either<A, B>, Boolean> f(final Either<A, B> e1) {
-        return new F<Either<A, B>, Boolean>() {
-          public Boolean f(final Either<A, B> e2) {
-            return e1.isLeft() && e2.isLeft() && ea.f.f(e1.left().value()).f(e2.left().value()) ||
-                   e1.isRight() && e2.isRight() && eb.f.f(e1.right().value()).f(e2.right().value());
-          }
-        };
-      }
-    });
+    Definition<A> eaDef = ea.def;
+    Definition<B> ebDef = eb.def;
+    return equalDef(e1 -> e1.either(
+        a1 -> Either.either_(eaDef.equal(a1), (B __) -> false),
+        b1 -> Either.either_((A __)-> false, ebDef.equal(b1))
+    ));
   }
 
   /**
@@ -235,7 +315,7 @@ public final class Equal<A> {
    * @return An equal instance for the {@link Validation} type.
    */
   public static <A, B> Equal<Validation<A, B>> validationEqual(final Equal<A> ea, final Equal<B> eb) {
-    return eitherEqual(ea, eb).comap(Validation.<A, B>either());
+    return eitherEqual(ea, eb).contramap(Validation.either());
   }
 
   /**
@@ -245,25 +325,20 @@ public final class Equal<A> {
    * @return An equal instance for the {@link List} type.
    */
   public static <A> Equal<List<A>> listEqual(final Equal<A> ea) {
-    return new Equal<List<A>>(new F<List<A>, F<List<A>, Boolean>>() {
-      public F<List<A>, Boolean> f(final List<A> a1) {
-        return new F<List<A>, Boolean>() {
-          public Boolean f(final List<A> a2) {
-            List<A> x1 = a1;
-            List<A> x2 = a2;
+    Definition<A> eaDef = ea.def;
+    return equalDef((a1, a2) -> {
+      List<A> x1 = a1;
+      List<A> x2 = a2;
 
-            while (x1.isNotEmpty() && x2.isNotEmpty()) {
-              if (!ea.eq(x1.head(), x2.head()))
-                return false;
+      while (x1.isNotEmpty() && x2.isNotEmpty()) {
+        if (!eaDef.equal(x1.head(), x2.head()))
+          return false;
 
-              x1 = x1.tail();
-              x2 = x2.tail();
-            }
-
-            return x1.isEmpty() && x2.isEmpty();
-          }
-        };
+        x1 = x1.tail();
+        x2 = x2.tail();
       }
+
+      return x1.isEmpty() && x2.isEmpty();
     });
   }
 
@@ -274,7 +349,7 @@ public final class Equal<A> {
    * @return An equal instance for the {@link NonEmptyList} type.
    */
   public static <A> Equal<NonEmptyList<A>> nonEmptyListEqual(final Equal<A> ea) {
-    return listEqual(ea).comap(NonEmptyList.<A>toList_());
+    return listEqual(ea).contramap(NonEmptyList.toList_());
   }
 
   /**
@@ -284,16 +359,15 @@ public final class Equal<A> {
    * @return An equal instance for the {@link Option} type.
    */
   public static <A> Equal<Option<A>> optionEqual(final Equal<A> ea) {
-    return new Equal<Option<A>>(new F<Option<A>, F<Option<A>, Boolean>>() {
-      public F<Option<A>, Boolean> f(final Option<A> o1) {
-        return new F<Option<A>, Boolean>() {
-          public Boolean f(final Option<A> o2) {
-            return o1.isNone() && o2.isNone() ||
-                   o1.isSome() && o2.isSome() && ea.f.f(o1.some()).f(o2.some());
-          }
-        };
-      }
-    });
+    Definition<A> eaDef = ea.def;
+    return equalDef(o1 -> o1.option(
+        Option.isNone_(),
+        a1 -> Option.option_(false, eaDef.equal(a1))
+    ));
+  }
+
+  public static <A> Equal<Seq<A>> seqEqual(final Equal<A> e) {
+    return streamEqual(e).contramap(Seq::toStream);
   }
 
   /**
@@ -303,25 +377,20 @@ public final class Equal<A> {
    * @return An equal instance for the {@link Stream} type.
    */
   public static <A> Equal<Stream<A>> streamEqual(final Equal<A> ea) {
-    return new Equal<Stream<A>>(new F<Stream<A>, F<Stream<A>, Boolean>>() {
-      public F<Stream<A>, Boolean> f(final Stream<A> a1) {
-        return new F<Stream<A>, Boolean>() {
-          public Boolean f(final Stream<A> a2) {
-            Stream<A> x1 = a1;
-            Stream<A> x2 = a2;
+    Definition<A> eaDef = ea.def;
+    return equalDef((a1, a2) -> {
+      Stream<A> x1 = a1;
+      Stream<A> x2 = a2;
 
-            while (x1.isNotEmpty() && x2.isNotEmpty()) {
-              if (!ea.eq(x1.head(), x2.head()))
-                return false;
+      while (x1.isNotEmpty() && x2.isNotEmpty()) {
+        if (!eaDef.equal(x1.head(), x2.head()))
+          return false;
 
-              x1 = x1.tail()._1();
-              x2 = x2.tail()._1();
-            }
-
-            return x1.isEmpty() && x2.isEmpty();
-          }
-        };
+        x1 = x1.tail()._1();
+        x2 = x2.tail()._1();
       }
+
+      return x1.isEmpty() && x2.isEmpty();
     });
   }
 
@@ -332,21 +401,16 @@ public final class Equal<A> {
    * @return An equal instance for the {@link Array} type.
    */
   public static <A> Equal<Array<A>> arrayEqual(final Equal<A> ea) {
-    return new Equal<Array<A>>(new F<Array<A>, F<Array<A>, Boolean>>() {
-      public F<Array<A>, Boolean> f(final Array<A> a1) {
-        return new F<Array<A>, Boolean>() {
-          public Boolean f(final Array<A> a2) {
-            if (a1.length() == a2.length()) {
-              for (int i = 0; i < a1.length(); i++) {
-                if (!ea.eq(a1.get(i), a2.get(i)))
-                  return false;
-              }
-              return true;
-            } else
-              return false;
-          }
-        };
-      }
+    Definition<A> eaDef = ea.def;
+    return equalDef((a1, a2) -> {
+      if (a1.length() == a2.length()) {
+        for (int i = 0; i < a1.length(); i++) {
+          if (!eaDef.equal(a1.get(i), a2.get(i)))
+            return false;
+        }
+        return true;
+      } else
+        return false;
     });
   }
 
@@ -357,11 +421,18 @@ public final class Equal<A> {
    * @return An equal instance for the {@link Tree} type.
    */
   public static <A> Equal<Tree<A>> treeEqual(final Equal<A> ea) {
-    return new Equal<Tree<A>>(curry(new F2<Tree<A>, Tree<A>, Boolean>() {
-      public Boolean f(final Tree<A> t1, final Tree<A> t2) {
-        return ea.eq(t1.root(), t2.root()) && p1Equal(streamEqual(treeEqual(ea))).eq(t2.subForest(), t1.subForest());
+    Definition<A> eaDef = ea.def;
+    return equalDef(new AltDefinition<Tree<A>>() {
+
+      final Definition<P1<Stream<Tree<A>>>> subForestEqDef = p1Equal(streamEqual(equalDef(this))).def;
+
+      @Override
+      public boolean equal(Tree<A> t1, Tree<A> t2) {
+        return eaDef.equal(t1.root(), t2.root())
+            && subForestEqDef.equal(t1.subForest(), t2.subForest());
+
       }
-    }));
+    });
   }
 
   /**
@@ -371,15 +442,7 @@ public final class Equal<A> {
    * @return An equal instance for a product-1.
    */
   public static <A> Equal<P1<A>> p1Equal(final Equal<A> ea) {
-    return new Equal<P1<A>>(new F<P1<A>, F<P1<A>, Boolean>>() {
-      public F<P1<A>, Boolean> f(final P1<A> p1) {
-        return new F<P1<A>, Boolean>() {
-          public Boolean f(final P1<A> p2) {
-            return ea.eq(p1._1(), p2._1());
-          }
-        };
-      }
-    });
+    return ea.contramap(P1.__1());
   }
 
   /**
@@ -390,15 +453,9 @@ public final class Equal<A> {
    * @return An equal instance for a product-2.
    */
   public static <A, B> Equal<P2<A, B>> p2Equal(final Equal<A> ea, final Equal<B> eb) {
-    return new Equal<P2<A, B>>(new F<P2<A, B>, F<P2<A, B>, Boolean>>() {
-      public F<P2<A, B>, Boolean> f(final P2<A, B> p1) {
-        return new F<P2<A, B>, Boolean>() {
-          public Boolean f(final P2<A, B> p2) {
-            return ea.eq(p1._1(), p2._1()) && eb.eq(p1._2(), p2._2());
-          }
-        };
-      }
-    });
+    Definition<A> eaDef = ea.def;
+    Definition<B> ebDef = eb.def;
+    return equalDef((p1, p2)-> eaDef.equal(p1._1(), p2._1()) && ebDef.equal(p1._2(), p2._2()));
   }
 
   /**
@@ -410,15 +467,10 @@ public final class Equal<A> {
    * @return An equal instance for a product-3.
    */
   public static <A, B, C> Equal<P3<A, B, C>> p3Equal(final Equal<A> ea, final Equal<B> eb, final Equal<C> ec) {
-    return new Equal<P3<A, B, C>>(new F<P3<A, B, C>, F<P3<A, B, C>, Boolean>>() {
-      public F<P3<A, B, C>, Boolean> f(final P3<A, B, C> p1) {
-        return new F<P3<A, B, C>, Boolean>() {
-          public Boolean f(final P3<A, B, C> p2) {
-            return ea.eq(p1._1(), p2._1()) && eb.eq(p1._2(), p2._2()) && ec.eq(p1._3(), p2._3());
-          }
-        };
-      }
-    });
+    Definition<A> eaDef = ea.def;
+    Definition<B> ebDef = eb.def;
+    Definition<C> ecDef = ec.def;
+    return equalDef((p1, p2) -> eaDef.equal(p1._1(), p2._1()) && ebDef.equal(p1._2(), p2._2()) && ecDef.equal(p1._3(), p2._3()));
   }
 
   /**
@@ -432,16 +484,12 @@ public final class Equal<A> {
    */
   public static <A, B, C, D> Equal<P4<A, B, C, D>> p4Equal(final Equal<A> ea, final Equal<B> eb, final Equal<C> ec,
                                                            final Equal<D> ed) {
-    return new Equal<P4<A, B, C, D>>(new F<P4<A, B, C, D>, F<P4<A, B, C, D>, Boolean>>() {
-      public F<P4<A, B, C, D>, Boolean> f(final P4<A, B, C, D> p1) {
-        return new F<P4<A, B, C, D>, Boolean>() {
-          public Boolean f(final P4<A, B, C, D> p2) {
-            return ea.eq(p1._1(), p2._1()) && eb.eq(p1._2(), p2._2()) && ec.eq(p1._3(), p2._3()) &&
-                   ed.eq(p1._4(), p2._4());
-          }
-        };
-      }
-    });
+    Definition<A> eaDef = ea.def;
+    Definition<B> ebDef = eb.def;
+    Definition<C> ecDef = ec.def;
+    Definition<D> edDef = ed.def;
+    return equalDef((p1, p2) -> eaDef.equal(p1._1(), p2._1()) && ebDef.equal(p1._2(), p2._2()) && ecDef.equal(p1._3(), p2._3()) &&
+        edDef.equal(p1._4(), p2._4()));
   }
 
   /**
@@ -457,16 +505,13 @@ public final class Equal<A> {
   public static <A, B, C, D, E> Equal<P5<A, B, C, D, E>> p5Equal(final Equal<A> ea, final Equal<B> eb,
                                                                  final Equal<C> ec, final Equal<D> ed,
                                                                  final Equal<E> ee) {
-    return new Equal<P5<A, B, C, D, E>>(new F<P5<A, B, C, D, E>, F<P5<A, B, C, D, E>, Boolean>>() {
-      public F<P5<A, B, C, D, E>, Boolean> f(final P5<A, B, C, D, E> p1) {
-        return new F<P5<A, B, C, D, E>, Boolean>() {
-          public Boolean f(final P5<A, B, C, D, E> p2) {
-            return ea.eq(p1._1(), p2._1()) && eb.eq(p1._2(), p2._2()) && ec.eq(p1._3(), p2._3()) &&
-                   ed.eq(p1._4(), p2._4()) && ee.eq(p1._5(), p2._5());
-          }
-        };
-      }
-    });
+    Definition<A> eaDef = ea.def;
+    Definition<B> ebDef = eb.def;
+    Definition<C> ecDef = ec.def;
+    Definition<D> edDef = ed.def;
+    Definition<E> eeDef = ee.def;
+    return equalDef((p1, p2) -> eaDef.equal(p1._1(), p2._1()) && ebDef.equal(p1._2(), p2._2()) && ecDef.equal(p1._3(), p2._3()) &&
+        edDef.equal(p1._4(), p2._4()) && eeDef.equal(p1._5(), p2._5()));
   }
 
   /**
@@ -483,16 +528,14 @@ public final class Equal<A> {
   public static <A, B, C, D, E, F$> Equal<P6<A, B, C, D, E, F$>> p6Equal(final Equal<A> ea, final Equal<B> eb,
                                                                          final Equal<C> ec, final Equal<D> ed,
                                                                          final Equal<E> ee, final Equal<F$> ef) {
-    return new Equal<P6<A, B, C, D, E, F$>>(new F<P6<A, B, C, D, E, F$>, F<P6<A, B, C, D, E, F$>, Boolean>>() {
-      public F<P6<A, B, C, D, E, F$>, Boolean> f(final P6<A, B, C, D, E, F$> p1) {
-        return new F<P6<A, B, C, D, E, F$>, Boolean>() {
-          public Boolean f(final P6<A, B, C, D, E, F$> p2) {
-            return ea.eq(p1._1(), p2._1()) && eb.eq(p1._2(), p2._2()) && ec.eq(p1._3(), p2._3()) &&
-                   ed.eq(p1._4(), p2._4()) && ee.eq(p1._5(), p2._5()) && ef.eq(p1._6(), p2._6());
-          }
-        };
-      }
-    });
+    Definition<A> eaDef = ea.def;
+    Definition<B> ebDef = eb.def;
+    Definition<C> ecDef = ec.def;
+    Definition<D> edDef = ed.def;
+    Definition<E> eeDef = ee.def;
+    Definition<F$> efDef = ef.def;
+    return equalDef((p1, p2) -> eaDef.equal(p1._1(), p2._1()) && ebDef.equal(p1._2(), p2._2()) && ecDef.equal(p1._3(), p2._3()) &&
+        edDef.equal(p1._4(), p2._4()) && eeDef.equal(p1._5(), p2._5()) && efDef.equal(p1._6(), p2._6()));
   }
 
   /**
@@ -511,17 +554,16 @@ public final class Equal<A> {
                                                                                final Equal<C> ec, final Equal<D> ed,
                                                                                final Equal<E> ee, final Equal<F$> ef,
                                                                                final Equal<G> eg) {
-    return new Equal<P7<A, B, C, D, E, F$, G>>(new F<P7<A, B, C, D, E, F$, G>, F<P7<A, B, C, D, E, F$, G>, Boolean>>() {
-      public F<P7<A, B, C, D, E, F$, G>, Boolean> f(final P7<A, B, C, D, E, F$, G> p1) {
-        return new F<P7<A, B, C, D, E, F$, G>, Boolean>() {
-          public Boolean f(final P7<A, B, C, D, E, F$, G> p2) {
-            return ea.eq(p1._1(), p2._1()) && eb.eq(p1._2(), p2._2()) && ec.eq(p1._3(), p2._3()) &&
-                   ed.eq(p1._4(), p2._4()) && ee.eq(p1._5(), p2._5()) && ef.eq(p1._6(), p2._6()) &&
-                   eg.eq(p1._7(), p2._7());
-          }
-        };
-      }
-    });
+    Definition<A> eaDef = ea.def;
+    Definition<B> ebDef = eb.def;
+    Definition<C> ecDef = ec.def;
+    Definition<D> edDef = ed.def;
+    Definition<E> eeDef = ee.def;
+    Definition<F$> efDef = ef.def;
+    Definition<G> egDef = eg.def;
+    return equalDef((p1, p2) -> eaDef.equal(p1._1(), p2._1()) && ebDef.equal(p1._2(), p2._2()) && ecDef.equal(p1._3(), p2._3()) &&
+        edDef.equal(p1._4(), p2._4()) && eeDef.equal(p1._5(), p2._5()) && efDef.equal(p1._6(), p2._6()) &&
+        egDef.equal(p1._7(), p2._7()));
   }
 
   /**
@@ -545,18 +587,18 @@ public final class Equal<A> {
                                                                                      final Equal<F$> ef,
                                                                                      final Equal<G> eg,
                                                                                      final Equal<H> eh) {
-    return new Equal<P8<A, B, C, D, E, F$, G, H>>(
-        new F<P8<A, B, C, D, E, F$, G, H>, F<P8<A, B, C, D, E, F$, G, H>, Boolean>>() {
-          public F<P8<A, B, C, D, E, F$, G, H>, Boolean> f(final P8<A, B, C, D, E, F$, G, H> p1) {
-            return new F<P8<A, B, C, D, E, F$, G, H>, Boolean>() {
-              public Boolean f(final P8<A, B, C, D, E, F$, G, H> p2) {
-                return ea.eq(p1._1(), p2._1()) && eb.eq(p1._2(), p2._2()) && ec.eq(p1._3(), p2._3()) &&
-                       ed.eq(p1._4(), p2._4()) && ee.eq(p1._5(), p2._5()) && ef.eq(p1._6(), p2._6()) &&
-                       eg.eq(p1._7(), p2._7()) && eh.eq(p1._8(), p2._8());
-              }
-            };
-          }
-        });
+    Definition<A> eaDef = ea.def;
+    Definition<B> ebDef = eb.def;
+    Definition<C> ecDef = ec.def;
+    Definition<D> edDef = ed.def;
+    Definition<E> eeDef = ee.def;
+    Definition<F$> efDef = ef.def;
+    Definition<G> egDef = eg.def;
+    Definition<H> ehDef = eh.def;
+    return equalDef(
+        (p1, p2) -> eaDef.equal(p1._1(), p2._1()) && ebDef.equal(p1._2(), p2._2()) && ecDef.equal(p1._3(), p2._3()) &&
+            edDef.equal(p1._4(), p2._4()) && eeDef.equal(p1._5(), p2._5()) && efDef.equal(p1._6(), p2._6()) &&
+            egDef.equal(p1._7(), p2._7()) && ehDef.equal(p1._8(), p2._8()));
   }
 
   /**
@@ -566,7 +608,7 @@ public final class Equal<A> {
    * @return An equal instance for a vector-2.
    */
   public static <A> Equal<V2<A>> v2Equal(final Equal<A> ea) {
-    return streamEqual(ea).comap(V2.<A>toStream_());
+    return streamEqual(ea).contramap(V2.toStream_());
   }
 
   /**
@@ -576,7 +618,7 @@ public final class Equal<A> {
    * @return An equal instance for a vector-3.
    */
   public static <A> Equal<V3<A>> v3Equal(final Equal<A> ea) {
-    return streamEqual(ea).comap(V3.<A>toStream_());
+    return streamEqual(ea).contramap(V3.toStream_());
   }
 
   /**
@@ -586,7 +628,7 @@ public final class Equal<A> {
    * @return An equal instance for a vector-4.
    */
   public static <A> Equal<V4<A>> v4Equal(final Equal<A> ea) {
-    return streamEqual(ea).comap(V4.<A>toStream_());
+    return streamEqual(ea).contramap(V4.toStream_());
   }
 
   /**
@@ -596,7 +638,7 @@ public final class Equal<A> {
    * @return An equal instance for a vector-5.
    */
   public static <A> Equal<V5<A>> v5Equal(final Equal<A> ea) {
-    return streamEqual(ea).comap(V5.<A>toStream_());
+    return streamEqual(ea).contramap(V5.toStream_());
   }
 
   /**
@@ -606,7 +648,7 @@ public final class Equal<A> {
    * @return An equal instance for a vector-6.
    */
   public static <A> Equal<V6<A>> v6Equal(final Equal<A> ea) {
-    return streamEqual(ea).comap(V6.<A>toStream_());
+    return streamEqual(ea).contramap(V6.toStream_());
   }
 
   /**
@@ -616,7 +658,7 @@ public final class Equal<A> {
    * @return An equal instance for a vector-7.
    */
   public static <A> Equal<V7<A>> v7Equal(final Equal<A> ea) {
-    return streamEqual(ea).comap(V7.<A>toStream_());
+    return streamEqual(ea).contramap(V7.toStream_());
   }
 
   /**
@@ -626,13 +668,13 @@ public final class Equal<A> {
    * @return An equal instance for a vector-8.
    */
   public static <A> Equal<V8<A>> v8Equal(final Equal<A> ea) {
-    return streamEqual(ea).comap(V8.<A>toStream_());
+    return streamEqual(ea).contramap(V8.toStream_());
   }
 
   /**
    * An equal instance for lazy strings.
    */
-  public static final Equal<LazyString> eq = streamEqual(charEqual).comap(LazyString.toStream);
+  public static final Equal<LazyString> eq = streamEqual(charEqual).contramap(LazyString.toStream);
 
   /**
    * An equal instance for the empty heterogeneous list.
@@ -647,11 +689,9 @@ public final class Equal<A> {
    * @return an equal instance for a heterogeneous list.
    */
   public static <E, L extends HList<L>> Equal<HList.HCons<E, L>> hListEqual(final Equal<E> e, final Equal<L> l) {
-    return equal(curry(new F2<HList.HCons<E, L>, HList.HCons<E, L>, Boolean>() {
-      public Boolean f(final HList.HCons<E, L> c1, final HList.HCons<E, L> c2) {
-        return e.eq(c1.head(), c2.head()) && l.eq(c1.tail(), c2.tail());
-      }
-    }));
+    Definition<E> eDef = e.def;
+    Definition<L> lDef = l.def;
+    return equalDef((c1, c2) -> eDef.equal(c1.head(), c2.head()) && lDef.equal(c1.tail(), c2.tail()));
   }
 
   /**
@@ -661,10 +701,43 @@ public final class Equal<A> {
    * @return An equal instance for sets.
    */
   public static <A> Equal<Set<A>> setEqual(final Equal<A> e) {
-    return equal(curry(new F2<Set<A>, Set<A>, Boolean>() {
-      public Boolean f(final Set<A> a, final Set<A> b) {
-        return streamEqual(e).eq(a.toStream(), b.toStream());
-      }
-    }));
+    return streamEqual(e).contramap(Set::toStream);
   }
+
+  public static <K, V> Equal<TreeMap<K, V>> treeMapEqual(Equal<K> k, Equal<V> v) {
+    return streamEqual(p2Equal(k, v)).contramap(TreeMap::toStream);
+  }
+
+  public static <A, B> Equal<Writer<A, B>> writerEqual(Equal<A> eq1, Equal<B> eq2) {
+    return p2Equal(eq1, eq2).contramap(Writer::run);
+  }
+  
+  /**
+   * Helper method to implement {@link Object#equals(Object)} correctly. DO NOT USE it for any other purpose.
+   *
+   * @param clazz the class in which the {@link Object#equals(Object)} is implemented
+   * @param self a reference to 'this'
+   * @param other the other object of the comparison
+   * @param equal an equal instance for the type of self (that use {@link #anyEqual()} if generic type).
+   * @return true if self and other are equal
+   */
+  @SuppressWarnings("unchecked")
+  public static <A> boolean equals0(final java.lang.Class<? super A> clazz, final A self, final Object other, final Equal<A> equal) {
+    return self == other || clazz.isInstance(other) && equal.eq(self, (A) other);
+  }
+  
+  /**
+   * Helper method to implement {@link Object#equals(Object)} correctly. DO NOT USE it for any other purpose.
+   *
+   * @param clazz the class in which the {@link Object#equals(Object)} is implemented
+   * @param self a reference to 'this'
+   * @param other the other object of the comparison
+   * @param equal a lazy equal instance for the type (that use {@link #anyEqual()} if generic type)..
+   * @return true if self and other are equal
+   */
+  @SuppressWarnings("unchecked")
+  public static <A> boolean equals0(final java.lang.Class<? super A> clazz, final A self, final Object other, final F0<Equal<A>> equal) {
+    return self == other || clazz.isInstance(other) && equal.f().eq(self, (A) other);
+  }
+
 }

@@ -1,5 +1,7 @@
 package fj;
 
+import static fj.P.weakMemo;
+
 /**
  * A product-3.
  *
@@ -99,7 +101,7 @@ public abstract class P3<A, B, C> {
    * @return the 1-product projection over the first element.
    */
   public final P1<A> _1_() {
-    return P3.<A, B, C>__1().lazy().f(this);
+    return F1Functions.lazy(P3.<A, B, C>__1()).f(this);
   }
 
   /**
@@ -108,7 +110,7 @@ public abstract class P3<A, B, C> {
    * @return the 1-product projection over the second element.
    */
   public final P1<B> _2_() {
-    return P3.<A, B, C>__2().lazy().f(this);
+    return F1Functions.lazy(P3.<A, B, C>__2()).f(this);
   }
 
   /**
@@ -117,7 +119,7 @@ public abstract class P3<A, B, C> {
    * @return the 1-product projection over the third element.
    */
   public final P1<C> _3_() {
-    return P3.<A, B, C>__3().lazy().f(this);
+    return F1Functions.lazy(P3.<A, B, C>__3()).f(this);
   }
 
   /**
@@ -126,10 +128,11 @@ public abstract class P3<A, B, C> {
    * @return A P3 that calls this P3 once for any given element and remembers the value for subsequent calls.
    */
   public final P3<A, B, C> memo() {
+      P3<A, B, C> self = this;
     return new P3<A, B, C>() {
-      private final P1<A> a = _1_().memo();
-      private final P1<B> b = _2_().memo();
-      private final P1<C> c = _3_().memo();
+      private final P1<A> a = weakMemo(self::_1);
+      private final P1<B> b = weakMemo(self::_2);
+      private final P1<C> c = weakMemo(self::_3);
 
       public A _1() {
         return a._1();
@@ -151,11 +154,7 @@ public abstract class P3<A, B, C> {
    * @return A function that returns the first element of a product.
    */
   public static <A, B, C> F<P3<A, B, C>, A> __1() {
-    return new F<P3<A, B, C>, A>() {
-      public A f(final P3<A, B, C> p) {
-        return p._1();
-      }
-    };
+    return P3::_1;
   }
 
   /**
@@ -164,11 +163,7 @@ public abstract class P3<A, B, C> {
    * @return A function that returns the second element of a product.
    */
   public static <A, B, C> F<P3<A, B, C>, B> __2() {
-    return new F<P3<A, B, C>, B>() {
-      public B f(final P3<A, B, C> p) {
-        return p._2();
-      }
-    };
+    return P3::_2;
   }
 
   /**
@@ -177,10 +172,23 @@ public abstract class P3<A, B, C> {
    * @return A function that returns the third element of a product.
    */
   public static <A, B, C> F<P3<A, B, C>, C> __3() {
-    return new F<P3<A, B, C>, C>() {
-      public C f(final P3<A, B, C> p) {
-        return p._3();
-      }
-    };
+    return P3::_3;
   }
+
+    @Override
+	public final String toString() {
+		return Show.p3Show(Show.<A>anyShow(), Show.<B>anyShow(), Show.<C>anyShow()).showS(this);
+	}
+
+  @Override
+  public final boolean equals(Object other) {
+    return Equal.equals0(P3.class, this, other, 
+        () -> Equal.p3Equal(Equal.anyEqual(), Equal.anyEqual(), Equal.anyEqual()));
+  }
+
+  @Override
+  public final int hashCode() {
+    return Hash.p3Hash(Hash.<A>anyHash(), Hash.<B>anyHash(), Hash.<C>anyHash()).hash(this);
+  }
+
 }

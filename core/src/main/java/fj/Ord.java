@@ -12,8 +12,13 @@ import fj.data.Validation;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Comparator;
 
+import static fj.Function.apply;
+import static fj.Function.compose;
 import static fj.Function.curry;
+import static fj.Semigroup.semigroup;
+import static fj.Semigroup.semigroupDef;
 
 /**
  * Tests for ordering between two objects.
@@ -21,10 +26,91 @@ import static fj.Function.curry;
  * @version %build.number%
  */
 public final class Ord<A> {
-  private final F<A, F<A, Ordering>> f;
 
-  private Ord(final F<A, F<A, Ordering>> f) {
-    this.f = f;
+  /**
+   * Primitives functions of Ord: minimal definition and overridable methods.
+   */
+  public interface Definition<A> extends Equal.Definition<A>, Semigroup.Definition<A> {
+
+    F<A, Ordering> compare(A a);
+
+    default Ordering compare(A a1, A a2) {
+      return compare(a1).f(a2);
+    }
+
+    // equal:
+    @Override
+    default boolean equal(A a1, A a2) {
+      return compare(a1, a2) == Ordering.EQ;
+    }
+
+    @Override
+    default F<A, Boolean> equal(A a) {
+      return compose(o -> o == Ordering.EQ, compare(a));
+    }
+
+    // max semigroup:
+    @Override
+    default A append(A a1, A a2) {
+      return compare(a1, a2) == Ordering.GT ? a1 : a2;
+    }
+
+    @Override
+    default A multiply1p(int n, A a) {
+      return a;
+    }
+
+    @Override
+    default F<A, A> prepend(A a1) {
+      return apply((a2, o) -> o == Ordering.GT ? a1 : a2, compare(a1));
+    }
+
+    @Override
+    default Definition<A> dual() {
+      return new Definition<A>() {
+        @Override
+        public F<A, Ordering> compare(A a) {
+          return compose(Ordering::reverse, Definition.this.compare(a));
+        }
+
+        @Override
+        public Ordering compare(A a1, A a2) {
+          return Definition.this.compare(a2, a1);
+        }
+
+        @Override
+        public Definition<A> dual() {
+          return Definition.this;
+        }
+      };
+    }
+  }
+
+  /**
+   * Primitives functions of Ord: alternative minimal definition and overridable methods.
+   */
+  public interface AltDefinition<A> extends Definition<A> {
+
+    Ordering compare(A a1, A a2);
+
+    default F<A, Ordering> compare(A a1) {
+      return a2 -> compare(a1, a2);
+    }
+
+    @Override
+    default F<A, A> prepend(A a1) {
+      return a2 -> append(a1, a2);
+    }
+
+  }
+
+
+  private final Definition<A> def;
+
+  private Ord(final Definition<A> def) {
+    this.def = def;
+    this.max = a1 -> apply((a2, o) -> o == Ordering.GT ? a1 : a2, def.compare(a1));
+    this.min = a1 -> apply((a2, o) -> o == Ordering.LT ? a1 : a2, def.compare(a1));
   }
 
   /**
@@ -33,7 +119,7 @@ public final class Ord<A> {
    * @return A function that returns an ordering for its arguments.
    */
   public F<A, F<A, Ordering>> compare() {
-    return f;
+    return def::compare;
   }
 
   /**
@@ -44,7 +130,7 @@ public final class Ord<A> {
    * @return An ordering for the given arguments.
    */
   public Ordering compare(final A a1, final A a2) {
-    return f.f(a1).f(a2);
+    return def.compare(a1, a2);
   }
 
   /**
@@ -55,7 +141,7 @@ public final class Ord<A> {
    * @return <code>true</code> if the given arguments are equal, <code>false</code> otherwise.
    */
   public boolean eq(final A a1, final A a2) {
-    return compare(a1, a2) == Ordering.EQ;
+    return def.compare(a1, a2) == Ordering.EQ;
   }
 
   /**
@@ -64,11 +150,7 @@ public final class Ord<A> {
    * @return An <code>Equal</code> for this order.
    */
   public Equal<A> equal() {
-    return Equal.equal(curry(new F2<A, A, Boolean>() {
-      public Boolean f(final A a1, final A a2) {
-        return eq(a1, a2);
-      }
-    }));
+    return Equal.equalDef(def);
   }
 
   /**
@@ -77,8 +159,19 @@ public final class Ord<A> {
    * @param f The function to map.
    * @return A new ord.
    */
-  public <B> Ord<B> comap(final F<B, A> f) {
-    return ord(f.<Ordering>andThen().o(this.f).o(f));
+  public <B> Ord<B> contramap(final F<B, A> f) {
+    Definition<A> selfDef = def;
+    return ordDef(new Definition<B>() {
+      @Override
+      public F<B, Ordering> compare(B b) {
+        return compose(selfDef.compare(f.f(b)), f);
+      }
+
+      @Override
+      public Ordering compare(B b1, B b2) {
+        return selfDef.compare(f.f(b1), f.f(b2));
+      }
+    });
   }
 
   /**
@@ -91,8 +184,21 @@ public final class Ord<A> {
    *         <code>false</code> otherwise.
    */
   public boolean isLessThan(final A a1, final A a2) {
-    return compare(a1, a2) == Ordering.LT;
+    return def.compare(a1, a2) == Ordering.LT;
   }
+
+    /**
+     * Returns <code>true</code> if the first given argument is less than or equal to the second given argument,
+     * <code>false</code> otherwise.
+     *
+     * @param a1 An instance to compare for ordering to another.
+     * @param a2 An instance to compare for ordering to another.
+     * @return <code>true</code> if the first given argument is less than or equal to the second given argument,
+     *         <code>false</code> otherwise.
+     */
+    public boolean isLessThanOrEqualTo(final A a1, final A a2) {
+        return def.compare(a1, a2) != Ordering.GT;
+    }
 
   /**
    * Returns <code>true</code> if the first given argument is greater than the second given
@@ -104,7 +210,7 @@ public final class Ord<A> {
    *         argument, <code>false</code> otherwise.
    */
   public boolean isGreaterThan(final A a1, final A a2) {
-    return compare(a1, a2) == Ordering.GT;
+    return def.compare(a1, a2) == Ordering.GT;
   }
 
   /**
@@ -114,11 +220,7 @@ public final class Ord<A> {
    * @return A function that returns true if its argument is less than the argument to this method.
    */
   public F<A, Boolean> isLessThan(final A a) {
-    return new F<A, Boolean>() {
-      public Boolean f(final A a2) {
-        return compare(a2, a) == Ordering.LT;
-      }
-    };
+    return compose(o -> o == Ordering.GT, def.compare(a));
   }
 
   /**
@@ -128,11 +230,7 @@ public final class Ord<A> {
    * @return A function that returns true if its argument is greater than the argument to this method.
    */
   public F<A, Boolean> isGreaterThan(final A a) {
-    return new F<A, Boolean>() {
-      public Boolean f(final A a2) {
-        return compare(a2, a) == Ordering.GT;
-      }
-    };
+    return compose(o -> o == Ordering.LT, def.compare(a));
   }
 
   /**
@@ -143,7 +241,7 @@ public final class Ord<A> {
    * @return The greater of the two values.
    */
   public A max(final A a1, final A a2) {
-    return isGreaterThan(a1, a2) ? a1 : a2;
+    return def.append(a1, a2);
   }
 
 
@@ -160,241 +258,157 @@ public final class Ord<A> {
 
   /**
    * A function that returns the greater of its two arguments.
+   *
    */
-  public final F<A, F<A, A>> max = curry(new F2<A, A, A>() {
-    public A f(final A a, final A a1) {
-      return max(a, a1);
-    }
-  });
+  public final F<A, F<A, A>> max;
 
   /**
    * A function that returns the lesser of its two arguments.
    */
-  public final F<A, F<A, A>> min = curry(new F2<A, A, A>() {
-    public A f(final A a, final A a1) {
-      return min(a, a1);
-    }
-  });
+  public final F<A, F<A, A>> min;
+
+  public final Semigroup<A> minSemigroup() {
+      return semigroupDef(def.dual());
+  }
+
+  public final Monoid<A> minMonoid(A zero) {
+    return Monoid.monoidDef(def.dual(), zero);
+  }
+
+  public final Semigroup<A> maxSemigroup() {
+      return semigroupDef(def);
+  }
+
+  public final Monoid<A> maxMonoid(A zero) {
+    return Monoid.monoidDef(def, zero);
+  }
+
+  public final Ord<A> reverse() {
+    return ordDef(def.dual());
+  }
 
   /**
    * Returns an order instance that uses the given equality test and ordering function.
+   *
+   * Java 8+ users: use {@link #ordDef(Definition)} instead.
    *
    * @param f The order function.
    * @return An order instance.
    */
   public static <A> Ord<A> ord(final F<A, F<A, Ordering>> f) {
-    return new Ord<A>(f);
+    return new Ord<>(f::f);
   }
+
+  /**
+   * Returns an order instance that uses the given equality test and ordering function.
+   *
+   * Java 8+ users: use {@link #ordDef(AltDefinition)} instead.
+   *
+   * @param f The order function.
+   * @return An order instance.
+   */
+  public static <A> Ord<A> ord(final F2<A, A, Ordering> f) {
+    return ordDef(f::f);
+  }
+
+  /**
+   * Returns an order instance that uses the given minimal equality test and ordering definition.
+   *
+   * @param def The order definition.
+   * @return An order instance.
+   */
+  public static <A> Ord<A> ordDef(final Definition<A> def) {
+    return new Ord<>(def);
+  }
+
+  /**
+   * Returns an order instance that uses the given minimal equality test and ordering definition.
+   *
+   * @param def The order definition.
+   * @return An order instance.
+   */
+  public static <A> Ord<A> ordDef(final AltDefinition<A> def) {
+    return new Ord<>(def);
+  }
+
 
   /**
    * An order instance for the <code>boolean</code> type.
    */
-  public static final Ord<Boolean> booleanOrd = new Ord<Boolean>(
-      new F<Boolean, F<Boolean, Ordering>>() {
-        public F<Boolean, Ordering> f(final Boolean a1) {
-          return new F<Boolean, Ordering>() {
-            public Ordering f(final Boolean a2) {
-              final int x = a1.compareTo(a2);
-              return x < 0 ? Ordering.LT : x == 0 ? Ordering.EQ : Ordering.GT;
-            }
-          };
-        }
-      });
+  public static final Ord<Boolean> booleanOrd = comparableOrd();
 
   /**
    * An order instance for the <code>byte</code> type.
    */
-  public static final Ord<Byte> byteOrd = new Ord<Byte>(
-      new F<Byte, F<Byte, Ordering>>() {
-        public F<Byte, Ordering> f(final Byte a1) {
-          return new F<Byte, Ordering>() {
-            public Ordering f(final Byte a2) {
-              final int x = a1.compareTo(a2);
-              return x < 0 ? Ordering.LT : x == 0 ? Ordering.EQ : Ordering.GT;
-            }
-          };
-        }
-      });
+  public static final Ord<Byte> byteOrd = comparableOrd();
 
   /**
    * An order instance for the <code>char</code> type.
    */
-  public static final Ord<Character> charOrd = new Ord<Character>(
-      new F<Character, F<Character, Ordering>>() {
-        public F<Character, Ordering> f(final Character a1) {
-          return new F<Character, Ordering>() {
-            public Ordering f(final Character a2) {
-              final int x = a1.compareTo(a2);
-              return x < 0 ? Ordering.LT : x == 0 ? Ordering.EQ : Ordering.GT;
-            }
-          };
-        }
-      });
+  public static final Ord<Character> charOrd = comparableOrd();
 
   /**
    * An order instance for the <code>double</code> type.
    */
-  public static final Ord<Double> doubleOrd = new Ord<Double>(
-      new F<Double, F<Double, Ordering>>() {
-        public F<Double, Ordering> f(final Double a1) {
-          return new F<Double, Ordering>() {
-            public Ordering f(final Double a2) {
-              final int x = a1.compareTo(a2);
-              return x < 0 ? Ordering.LT : x == 0 ? Ordering.EQ : Ordering.GT;
-            }
-          };
-        }
-      });
+  public static final Ord<Double> doubleOrd = comparableOrd();
 
   /**
    * An order instance for the <code>float</code> type.
    */
-  public static final Ord<Float> floatOrd = new Ord<Float>(
-      new F<Float, F<Float, Ordering>>() {
-        public F<Float, Ordering> f(final Float a1) {
-          return new F<Float, Ordering>() {
-            public Ordering f(final Float a2) {
-              final int x = a1.compareTo(a2);
-              return x < 0 ? Ordering.LT : x == 0 ? Ordering.EQ : Ordering.GT;
-            }
-          };
-        }
-      });
+  public static final Ord<Float> floatOrd = comparableOrd();
 
   /**
    * An order instance for the <code>int</code> type.
    */
-  public static final Ord<Integer> intOrd = new Ord<Integer>(
-      new F<Integer, F<Integer, Ordering>>() {
-        public F<Integer, Ordering> f(final Integer a1) {
-          return new F<Integer, Ordering>() {
-            public Ordering f(final Integer a2) {
-              final int x = a1.compareTo(a2);
-              return x < 0 ? Ordering.LT : x == 0 ? Ordering.EQ : Ordering.GT;
-            }
-          };
-        }
-      });
+  public static final Ord<Integer> intOrd = comparableOrd();
 
   /**
    * An order instance for the <code>BigInteger</code> type.
    */
-  public static final Ord<BigInteger> bigintOrd = new Ord<BigInteger>(
-      new F<BigInteger, F<BigInteger, Ordering>>() {
-        public F<BigInteger, Ordering> f(final BigInteger a1) {
-          return new F<BigInteger, Ordering>() {
-            public Ordering f(final BigInteger a2) {
-              final int x = a1.compareTo(a2);
-              return x < 0 ? Ordering.LT : x == 0 ? Ordering.EQ : Ordering.GT;
-            }
-          };
-        }
-      });
+  public static final Ord<BigInteger> bigintOrd = comparableOrd();
 
   /**
    * An order instance for the <code>BigDecimal</code> type.
    */
-  public static final Ord<BigDecimal> bigdecimalOrd = new Ord<BigDecimal>(
-      new F<BigDecimal, F<BigDecimal, Ordering>>() {
-        public F<BigDecimal, Ordering> f(final BigDecimal a1) {
-          return new F<BigDecimal, Ordering>() {
-            public Ordering f(final BigDecimal a2) {
-              final int x = a1.compareTo(a2);
-              return x < 0 ? Ordering.LT : x == 0 ? Ordering.EQ : Ordering.GT;
-            }
-          };
-        }
-      });
+  public static final Ord<BigDecimal> bigdecimalOrd = comparableOrd();
 
   /**
    * An order instance for the <code>long</code> type.
    */
-  public static final Ord<Long> longOrd = new Ord<Long>(
-      new F<Long, F<Long, Ordering>>() {
-        public F<Long, Ordering> f(final Long a1) {
-          return new F<Long, Ordering>() {
-            public Ordering f(final Long a2) {
-              final int x = a1.compareTo(a2);
-              return x < 0 ? Ordering.LT : x == 0 ? Ordering.EQ : Ordering.GT;
-            }
-          };
-        }
-      });
+  public static final Ord<Long> longOrd = comparableOrd();
 
   /**
    * An order instance for the <code>short</code> type.
    */
-  public static final Ord<Short> shortOrd = new Ord<Short>(
-      new F<Short, F<Short, Ordering>>() {
-        public F<Short, Ordering> f(final Short a1) {
-          return new F<Short, Ordering>() {
-            public Ordering f(final Short a2) {
-              final int x = a1.compareTo(a2);
-              return x < 0 ? Ordering.LT : x == 0 ? Ordering.EQ : Ordering.GT;
-            }
-          };
-        }
-      });
+  public static final Ord<Short> shortOrd = comparableOrd();
 
   /**
    * An order instance for the {@link Ordering} type.
    */
-  public static final Ord<Ordering> orderingOrd = new Ord<Ordering>(curry(new F2<Ordering, Ordering, Ordering>() {
-    public Ordering f(final Ordering o1, final Ordering o2) {
-      return o1 == o2 ?
-             Ordering.EQ :
-             o1 == Ordering.LT ?
-             Ordering.LT :
-             o2 == Ordering.LT ?
-             Ordering.GT :
-             o1 == Ordering.EQ ?
-             Ordering.LT :
-             Ordering.GT;
-    }
-  }));
+  public static final Ord<Ordering> orderingOrd = ordDef((o1, o2) -> o1 == o2 ?
+         Ordering.EQ :
+         o1 == Ordering.LT ?
+         Ordering.LT :
+         o2 == Ordering.LT ?
+         Ordering.GT :
+         o1 == Ordering.EQ ?
+         Ordering.LT :
+         Ordering.GT);
 
   /**
    * An order instance for the {@link String} type.
    */
-  public static final Ord<String> stringOrd = new Ord<String>(
-      new F<String, F<String, Ordering>>() {
-        public F<String, Ordering> f(final String a1) {
-          return new F<String, Ordering>() {
-            public Ordering f(final String a2) {
-              final int x = a1.compareTo(a2);
-              return x < 0 ? Ordering.LT : x == 0 ? Ordering.EQ : Ordering.GT;
-            }
-          };
-        }
-      });
+  public static final Ord<String> stringOrd = comparableOrd();
 
   /**
    * An order instance for the {@link StringBuffer} type.
    */
-  public static final Ord<StringBuffer> stringBufferOrd =
-      new Ord<StringBuffer>(new F<StringBuffer, F<StringBuffer, Ordering>>() {
-        public F<StringBuffer, Ordering> f(final StringBuffer a1) {
-          return new F<StringBuffer, Ordering>() {
-            public Ordering f(final StringBuffer a2) {
-              return stringOrd.compare(a1.toString(), a2.toString());
-            }
-          };
-        }
-      });
+  public static final Ord<StringBuffer> stringBufferOrd = stringOrd.contramap(StringBuffer::toString);
 
   /**
    * An order instance for the {@link StringBuffer} type.
    */
-  public static final Ord<StringBuilder> stringBuilderOrd =
-      new Ord<StringBuilder>(new F<StringBuilder, F<StringBuilder, Ordering>>() {
-        public F<StringBuilder, Ordering> f(final StringBuilder a1) {
-          return new F<StringBuilder, Ordering>() {
-            public Ordering f(final StringBuilder a2) {
-              return stringOrd.compare(a1.toString(), a2.toString());
-            }
-          };
-        }
-      });
+  public static final Ord<StringBuilder> stringBuilderOrd = stringOrd.contramap(StringBuilder::toString);
 
   /**
    * An order instance for the {@link Option} type.
@@ -403,21 +417,14 @@ public final class Ord<A> {
    * @return An order instance for the {@link Option} type.
    */
   public static <A> Ord<Option<A>> optionOrd(final Ord<A> oa) {
-    return new Ord<Option<A>>(new F<Option<A>, F<Option<A>, Ordering>>() {
-      public F<Option<A>, Ordering> f(final Option<A> o1) {
-        return new F<Option<A>, Ordering>() {
-          public Ordering f(final Option<A> o2) {
-            return o1.isNone() ?
-                   o2.isNone() ?
-                   Ordering.EQ :
-                   Ordering.LT :
-                   o2.isNone() ?
-                   Ordering.GT :
-                   oa.f.f(o1.some()).f(o2.some());
-          }
-        };
-      }
-    });
+    Definition<A> oaDef = oa.def;
+    return ordDef((o1, o2) -> o1.isNone() ?
+            o2.isNone() ?
+                    Ordering.EQ :
+                    Ordering.LT :
+            o2.isNone() ?
+                    Ordering.GT :
+                oaDef.compare(o1.some()).f(o2.some()));
   }
 
   /**
@@ -428,21 +435,15 @@ public final class Ord<A> {
    * @return An order instance for the {@link Either} type.
    */
   public static <A, B> Ord<Either<A, B>> eitherOrd(final Ord<A> oa, final Ord<B> ob) {
-    return new Ord<Either<A, B>>(new F<Either<A, B>, F<Either<A, B>, Ordering>>() {
-      public F<Either<A, B>, Ordering> f(final Either<A, B> e1) {
-        return new F<Either<A, B>, Ordering>() {
-          public Ordering f(final Either<A, B> e2) {
-            return e1.isLeft() ?
-                   e2.isLeft() ?
-                   oa.f.f(e1.left().value()).f(e2.left().value()) :
-                   Ordering.LT :
-                   e2.isLeft() ?
-                   Ordering.GT :
-                   ob.f.f(e1.right().value()).f(e2.right().value());
-          }
-        };
-      }
-    });
+    Definition<A> oaDef = oa.def;
+    Definition<B> obDef = ob.def;
+    return ordDef((e1, e2) -> e1.isLeft() ?
+            e2.isLeft() ?
+                oaDef.compare(e1.left().value()).f(e2.left().value()) :
+                Ordering.LT :
+            e2.isLeft() ?
+                Ordering.GT :
+                obDef.compare(e1.right().value()).f(e2.right().value()));
   }
 
   /**
@@ -453,7 +454,7 @@ public final class Ord<A> {
    * @return An order instance for the {@link Validation} type.
    */
   public static <A, B> Ord<Validation<A, B>> validationOrd(final Ord<A> oa, final Ord<B> ob) {
-    return eitherOrd(oa, ob).comap(Validation.<A, B>either());
+    return eitherOrd(oa, ob).contramap(Validation.either());
   }
 
   /**
@@ -463,20 +464,25 @@ public final class Ord<A> {
    * @return An order instance for the {@link List} type.
    */
   public static <A> Ord<List<A>> listOrd(final Ord<A> oa) {
-    return new Ord<List<A>>(new F<List<A>, F<List<A>, Ordering>>() {
-      public F<List<A>, Ordering> f(final List<A> l1) {
-        return new F<List<A>, Ordering>() {
-          public Ordering f(final List<A> l2) {
-            if (l1.isEmpty())
-              return l2.isEmpty() ? Ordering.EQ : Ordering.LT;
-            else if (l2.isEmpty())
-              return l1.isEmpty() ? Ordering.EQ : Ordering.GT;
-            else {
-              final Ordering c = oa.compare(l1.head(), l2.head());
-              return c == Ordering.EQ ? listOrd(oa).f.f(l1.tail()).f(l2.tail()) : c;
-            }
-          }
-        };
+    return ordDef((l1, l2) -> {
+      List<A> x1 = l1;
+      List<A> x2 = l2;
+
+      while (x1.isNotEmpty() && x2.isNotEmpty()) {
+        final Ordering o = oa.compare(x1.head(), x2.head());
+        if (o == Ordering.LT || o == Ordering.GT) {
+          return o;
+        }
+        x1 = x1.tail();
+        x2 = x2.tail();
+      }
+
+      if (x1.isEmpty() && x2.isEmpty()) {
+        return Ordering.EQ;
+      } else if (x1.isEmpty()) {
+        return Ordering.LT;
+      } else {
+        return Ordering.GT;
       }
     });
   }
@@ -488,7 +494,7 @@ public final class Ord<A> {
    * @return An order instance for the {@link NonEmptyList} type.
    */
   public static <A> Ord<NonEmptyList<A>> nonEmptyListOrd(final Ord<A> oa) {
-    return listOrd(oa).comap(NonEmptyList.<A>toList_());
+    return listOrd(oa).contramap(NonEmptyList.toList_());
   }
 
   /**
@@ -498,21 +504,16 @@ public final class Ord<A> {
    * @return An order instance for the {@link Stream} type.
    */
   public static <A> Ord<Stream<A>> streamOrd(final Ord<A> oa) {
-    return new Ord<Stream<A>>(new F<Stream<A>, F<Stream<A>, Ordering>>() {
-      public F<Stream<A>, Ordering> f(final Stream<A> s1) {
-        return new F<Stream<A>, Ordering>() {
-          public Ordering f(final Stream<A> s2) {
-            if (s1.isEmpty())
-              return s2.isEmpty() ? Ordering.EQ : Ordering.LT;
-            else if (s2.isEmpty())
-              return s1.isEmpty() ? Ordering.EQ : Ordering.GT;
-            else {
-              final Ordering c = oa.compare(s1.head(), s2.head());
-              return c == Ordering.EQ ? streamOrd(oa).f.f(s1.tail()._1()).f(s2.tail()._1()) : c;
-            }
-          }
-        };
-      }
+    return ordDef((s1, s2) -> {
+        if (s1.isEmpty())
+            return s2.isEmpty() ? Ordering.EQ : Ordering.LT;
+        else if (s2.isEmpty())
+            return s1.isEmpty() ? Ordering.EQ : Ordering.GT;
+        else {
+            final Ordering c = oa.compare(s1.head(), s2.head());
+          // FIXME: not stack safe
+            return c == Ordering.EQ ? streamOrd(oa).def.compare(s1.tail()._1()).f(s2.tail()._1()) : c;
+        }
     });
   }
 
@@ -523,27 +524,21 @@ public final class Ord<A> {
    * @return An order instance for the {@link Array} type.
    */
   public static <A> Ord<Array<A>> arrayOrd(final Ord<A> oa) {
-    return new Ord<Array<A>>(new F<Array<A>, F<Array<A>, Ordering>>() {
-      public F<Array<A>, Ordering> f(final Array<A> a1) {
-        return new F<Array<A>, Ordering>() {
-          public Ordering f(final Array<A> a2) {
-            int i = 0;
-            //noinspection ForLoopWithMissingComponent
-            for (; i < a1.length() && i < a2.length(); i++) {
-              final Ordering c = oa.compare(a1.get(i), a2.get(i));
-              if (c == Ordering.GT || c == Ordering.LT)
+    return ordDef((a1, a2) -> {
+        int i = 0;
+        //noinspection ForLoopWithMissingComponent
+        for (; i < a1.length() && i < a2.length(); i++) {
+            final Ordering c = oa.compare(a1.get(i), a2.get(i));
+            if (c == Ordering.GT || c == Ordering.LT)
                 return c;
-            }
-            return i == a1.length() ?
-                   i == a2.length() ?
-                   Ordering.EQ :
-                   Ordering.LT :
-                   i == a1.length() ?
-                   Ordering.EQ :
-                   Ordering.GT;
-          }
-        };
-      }
+        }
+        return i == a1.length() ?
+                i == a2.length() ?
+                        Ordering.EQ :
+                        Ordering.LT :
+                i == a1.length() ?
+                        Ordering.EQ :
+                        Ordering.GT;
     });
   }
 
@@ -554,21 +549,13 @@ public final class Ord<A> {
    * @return An order instance for the {@link Set} type.
    */
   public static <A> Ord<Set<A>> setOrd(final Ord<A> oa) {
-    return streamOrd(oa).comap(new F<Set<A>, Stream<A>>() {
-      public Stream<A> f(final Set<A> as) {
-        return as.toStream();
-      }
-    });
+    return streamOrd(oa).contramap(Set::toStream);
   }
 
   /**
    * An order instance for the {@link Unit} type.
    */
-  public static final Ord<Unit> unitOrd = ord(curry(new F2<Unit, Unit, Ordering>() {
-    public Ordering f(final Unit u1, final Unit u2) {
-      return Ordering.EQ;
-    }
-  }));
+  public static final Ord<Unit> unitOrd = ordDef((u1, u2) -> Ordering.EQ);
 
   /**
    * An order instance for a product-1.
@@ -577,7 +564,7 @@ public final class Ord<A> {
    * @return An order instance for a product-1.
    */
   public static <A> Ord<P1<A>> p1Ord(final Ord<A> oa) {
-    return oa.comap(P1.<A>__1());
+    return oa.contramap(P1.__1());
   }
 
 
@@ -589,12 +576,16 @@ public final class Ord<A> {
    * @return An order instance for a product-2, with the first factor considered most significant.
    */
   public static <A, B> Ord<P2<A, B>> p2Ord(final Ord<A> oa, final Ord<B> ob) {
-    return ord(curry(new F2<P2<A, B>, P2<A, B>, Ordering>() {
-      public Ordering f(final P2<A, B> a, final P2<A, B> b) {
-        return oa.eq(a._1(), b._1()) ? ob.compare(a._2(), b._2()) : oa.compare(a._1(), b._1());
-      }
-    }));
+    return ordDef((a, b) -> oa.eq(a._1(), b._1()) ? ob.compare(a._2(), b._2()) : oa.compare(a._1(), b._1()));
   }
+
+    public static <A, B> Ord<P2<A, B>> p2Ord1(Ord<A> oa) {
+        return ordDef((p1, p2) -> oa.compare(p1._1(), p2._1()));
+    }
+
+    public static <A, B> Ord<P2<A, B>> p2Ord2(Ord<B> ob) {
+        return ordDef((p1, p2) -> ob.compare(p1._2(), p2._2()));
+    }
 
   /**
    * An order instance for a product-3, with the first factor considered most significant.
@@ -605,19 +596,15 @@ public final class Ord<A> {
    * @return An order instance for a product-3, with the first factor considered most significant.
    */
   public static <A, B, C> Ord<P3<A, B, C>> p3Ord(final Ord<A> oa, final Ord<B> ob, final Ord<C> oc) {
-    return ord(curry(new F2<P3<A, B, C>, P3<A, B, C>, Ordering>() {
-      public Ordering f(final P3<A, B, C> a, final P3<A, B, C> b) {
-        return oa.eq(a._1(), b._1()) ?
-               p2Ord(ob, oc).compare(P.p(a._2(), a._3()), P.p(b._2(), b._3()))
-                                     : oa.compare(a._1(), b._1());
-      }
-    }));
+    return ordDef((a, b) -> oa.eq(a._1(), b._1()) ?
+           p2Ord(ob, oc).compare(P.p(a._2(), a._3()), P.p(b._2(), b._3()))
+                                 : oa.compare(a._1(), b._1()));
   }
 
   /**
    * An order instance for the <code>Natural</code> type.
    */
-  public static final Ord<Natural> naturalOrd = bigintOrd.comap(Natural.bigIntegerValue);
+  public static final Ord<Natural> naturalOrd = bigintOrd.contramap(Natural.bigIntegerValue);
 
 
   /**
@@ -626,61 +613,55 @@ public final class Ord<A> {
    * @return An order instance for the <code>Comparable</code> interface.
    */
   public static <A extends Comparable<A>> Ord<A> comparableOrd() {
-    return ord(new F<A, F<A, Ordering>>() {
-      public F<A, Ordering> f(final A a1) {
-        return new F<A, Ordering>() {
-          public Ordering f(final A a2) {
-            final int x = a1.compareTo(a2);
-            return x < 0 ? Ordering.LT : x == 0 ? Ordering.EQ : Ordering.GT;
-          }
-        };
-      }
-    });
+    return ordDef((a1, a2) -> Ordering.fromInt(a1.compareTo(a2)));
   }
 
   /**
    * An order instance that uses {@link Object#hashCode()} for computing the order and equality,
-   * thus objects returning the same hashCode are considered to be equals (check {@link #hashEqualsOrd()}
-   * for an additional check on {@link Object#equals(Object)}).
+   * thus objects returning the same hashCode are considered to be equals.
+   * This is not safe and therefore this method is deprecated.
    *
    * @return An order instance that is based on {@link Object#hashCode()}.
-   * @see #hashEqualsOrd()
+   *
+   * @deprecated As of release 4.7.
    */
+  @Deprecated
   public static <A> Ord<A> hashOrd() {
-    return Ord.<A> ord(new F<A, F<A, Ordering>>() {
-      @Override
-      public F<A, Ordering> f(final A a) {
-        return new F<A, Ordering>() {
-          @Override
-          public Ordering f(final A a2) {
-            final int x = a.hashCode() - a2.hashCode();
-            return x < 0 ? Ordering.LT : x == 0 ? Ordering.EQ : Ordering.GT;
-          }
-        };
-      }
+    return ordDef(a -> {
+      int aHash = a.hashCode();
+      return a2 -> Ordering.fromInt(Integer.valueOf(aHash).compareTo(a2.hashCode()));
     });
   }
 
   /**
-   * An order instance that uses {@link Object#hashCode()} and {@link Object#equals()} for computing
+   * An order instance that uses {@link Object#hashCode()} and {@link Object#equals} for computing
    * the order and equality. First the hashCode is compared, if this is equal, objects are compared
-   * using {@link Object#equals()}.
+   * using {@link Object#equals}.
+   * WARNING: This ordering violate antisymmetry on hash collisions.
    *
-   * @return An order instance that is based on {@link Object#hashCode()} and {@link Object#equals()}.
+   * @return An order instance that is based on {@link Object#hashCode()} and {@link Object#equals}.
+   *
+   * @deprecated As of release 4.7.
    */
+  @Deprecated
   public static <A> Ord<A> hashEqualsOrd() {
-    return Ord.<A> ord(new F<A, F<A, Ordering>>() {
-      @Override
-      public F<A, Ordering> f(final A a) {
-        return new F<A, Ordering>() {
-          @Override
-          public Ordering f(final A a2) {
-            final int x = a.hashCode() - a2.hashCode();
-            return x < 0 ? Ordering.LT : x == 0 && a.equals(a2) ? Ordering.EQ : Ordering.GT;
-          }
-        };
-      }
+    return ordDef(a -> {
+      int aHash = a.hashCode();
+      return a2 -> {
+        final int a2Hash = a2.hashCode();
+        return aHash < a2Hash ? Ordering.LT : aHash == a2Hash && a.equals(a2) ? Ordering.EQ : Ordering.GT;
+      };
     });
   }
 
+  class OrdComparator implements Comparator<A> {
+	@Override
+    public final int compare(A o1, A o2) {
+	    return Ord.this.compare(o1, o2).toInt();
+    }
+  }
+
+  public Comparator<A> toComparator() {
+	  return new OrdComparator();
+  }
 }

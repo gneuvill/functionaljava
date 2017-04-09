@@ -1,11 +1,16 @@
 package fj.data;
 
 import static fj.Bottom.error;
+
+import fj.Equal;
 import fj.F;
-import fj.F2;
+
 import static fj.Monoid.naturalAdditionMonoid;
 import static fj.Monoid.naturalMultiplicationMonoid;
 import static fj.Function.curry;
+
+import fj.Hash;
+import fj.Show;
 import fj.data.vector.V2;
 import fj.data.vector.V;
 
@@ -32,7 +37,7 @@ public final class Natural extends Number {
    */
   public static Option<Natural> natural(final BigInteger i) {
     return i.compareTo(BigInteger.ZERO) < 0
-           ? Option.<Natural>none()
+           ? Option.none()
            : Option.some(new Natural(i));
   }
 
@@ -40,11 +45,7 @@ public final class Natural extends Number {
    * A function that returns the natural number equal to a given BigInteger
    */
   public static final F<BigInteger, Option<Natural>> fromBigInt =
-      new F<BigInteger, Option<Natural>>() {
-        public Option<Natural> f(final BigInteger i) {
-          return natural(i);
-        }
-      };
+      Natural::natural;
 
   /**
    * Returns the natural number equal to the given long
@@ -81,11 +82,7 @@ public final class Natural extends Number {
    * @return A function that returns the successor of a given natural number.
    */
   public static F<Natural, Natural> succ_() {
-    return new F<Natural, Natural>() {
-      public Natural f(final Natural natural) {
-        return natural.succ();
-      }
-    };
+    return Natural::succ;
   }
 
   /**
@@ -103,11 +100,7 @@ public final class Natural extends Number {
    * @return A function that returns the predecessor of a given natural number, or None if it's zero.
    */
   public static F<Natural, Option<Natural>> pred_() {
-    return new F<Natural, Option<Natural>>() {
-      public Option<Natural> f(final Natural natural) {
-        return natural.pred();
-      }
-    };
+    return Natural::pred;
   }
 
   /**
@@ -123,11 +116,7 @@ public final class Natural extends Number {
   /**
    * A function that adds two natural numbers.
    */
-  public static final F<Natural, F<Natural, Natural>> add = curry(new F2<Natural, Natural, Natural>() {
-    public Natural f(final Natural n1, final Natural n2) {
-      return n1.add(n2);
-    }
-  });
+  public static final F<Natural, F<Natural, Natural>> add = curry(Natural::add);
 
 
   /**
@@ -137,18 +126,14 @@ public final class Natural extends Number {
    * @return The difference between the two numbers, if this number is larger than the given one. Otherwise none.
    */
   public Option<Natural> subtract(final Natural n) {
-    return natural(n.value.subtract(value));
+    return natural(value.subtract(n.value));
   }
 
   /**
    * A function that subtracts its first argument from its second.
    */
   public static final F<Natural, F<Natural, Option<Natural>>> subtract =
-      curry(new F2<Natural, Natural, Option<Natural>>() {
-        public Option<Natural> f(final Natural o, final Natural o1) {
-          return o1.subtract(o);
-        }
-      });
+      curry((o, o1) -> o1.subtract(o));
 
   /**
    * Multiply a natural number by another.
@@ -163,22 +148,14 @@ public final class Natural extends Number {
   /**
    * A function that multiplies a natural number by another.
    */
-  public static final F<Natural, F<Natural, Natural>> multiply = curry(new F2<Natural, Natural, Natural>() {
-    public Natural f(final Natural n1, final Natural n2) {
-      return n1.multiply(n2);
-    }
-  });
+  public static final F<Natural, F<Natural, Natural>> multiply = curry(Natural::multiply);
 
 
   /**
    * A function that divides its second argument by its first.
    */
   public static final F<Natural, F<Natural, Natural>> divide =
-      curry(new F2<Natural, Natural, Natural>() {
-        public Natural f(final Natural n1, final Natural n2) {
-          return n2.divide(n1);
-        }
-      });
+      curry((n1, n2) -> n2.divide(n1));
 
   /**
    * Divide a natural number by another.
@@ -205,11 +182,7 @@ public final class Natural extends Number {
    * A function that yields the remainder of division of its second argument by its first.
    */
   public static final F<Natural, F<Natural, Natural>> mod =
-      curry(new F2<Natural, Natural, Natural>() {
-        public Natural f(final Natural n1, final Natural n2) {
-          return n2.mod(n1);
-        }
-      });
+      curry((n1, n2) -> n2.mod(n1));
 
   /**
    * Divide a natural number by another yielding both the quotient and the remainder.
@@ -226,11 +199,7 @@ public final class Natural extends Number {
    * A function that divides its second argument by its first, yielding both the quotient and the remainder.
    */
   public static final F<Natural, F<Natural, V2<Natural>>> divmod =
-      curry(new F2<Natural, Natural, V2<Natural>>() {
-        public V2<Natural> f(final Natural n1, final Natural n2) {
-          return n2.divmod(n1);
-        }
-      });
+      curry((n1, n2) -> n2.divmod(n1));
 
 
   /**
@@ -281,11 +250,7 @@ public final class Natural extends Number {
   /**
    * A function that returns the BigInteger value of a given Natural.
    */
-  public static final F<Natural, BigInteger> bigIntegerValue = new F<Natural, BigInteger>() {
-    public BigInteger f(final Natural n) {
-      return n.bigIntegerValue();
-    }
-  };
+  public static final F<Natural, BigInteger> bigIntegerValue = Natural::bigIntegerValue;
 
   /**
    * Sums a stream of natural numbers.
@@ -325,5 +290,21 @@ public final class Natural extends Number {
    */
   public static Natural product(final List<Natural> ns) {
     return naturalMultiplicationMonoid.sumLeft(ns);
+  }
+
+
+  @Override
+  public int hashCode() {
+    return Hash.naturalHash.hash(this);
+  }
+
+  @Override
+  public boolean equals(final Object that) {
+    return Equal.equals0(Natural.class, this, that, Equal.naturalEqual);
+  }
+
+  @Override
+  public String toString() {
+    return Show.naturalShow.showS(this);
   }
 }

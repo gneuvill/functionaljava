@@ -1,0 +1,18 @@
+
+ext {
+    signModule = true
+}
+
+archivesBaseName = "${project.projectName}-${project.name}"
+
+configureAllRetroLambda()
+
+dependencies {
+	compile project(":core")
+    compile dependencyJunit
+}
+
+performSigning(signingEnabled, signModule)
+configureUpload(signingEnabled, signModule)
+
+uploadArchives.enabled = true

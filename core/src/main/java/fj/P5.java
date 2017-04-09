@@ -1,5 +1,7 @@
 package fj;
 
+import static fj.P.weakMemo;
+
 /**
  * A product-5.
  *
@@ -197,7 +199,7 @@ public abstract class P5<A, B, C, D, E> {
    * @return the 1-product projection over the first element.
    */
   public final P1<A> _1_() {
-    return P5.<A, B, C, D, E>__1().lazy().f(this);
+    return F1Functions.lazy(P5.<A, B, C, D, E>__1()).f(this);
   }
 
   /**
@@ -206,7 +208,7 @@ public abstract class P5<A, B, C, D, E> {
    * @return the 1-product projection over the second element.
    */
   public final P1<B> _2_() {
-    return P5.<A, B, C, D, E>__2().lazy().f(this);
+    return F1Functions.lazy(P5.<A, B, C, D, E>__2()).f(this);
   }
 
   /**
@@ -215,7 +217,7 @@ public abstract class P5<A, B, C, D, E> {
    * @return the 1-product projection over the third element.
    */
   public final P1<C> _3_() {
-    return P5.<A, B, C, D, E>__3().lazy().f(this);
+    return F1Functions.lazy(P5.<A, B, C, D, E>__3()).f(this);
   }
 
   /**
@@ -224,7 +226,7 @@ public abstract class P5<A, B, C, D, E> {
    * @return the 1-product projection over the fourth element.
    */
   public final P1<D> _4_() {
-    return P5.<A, B, C, D, E>__4().lazy().f(this);
+    return F1Functions.lazy(P5.<A, B, C, D, E>__4()).f(this);
   }
 
   /**
@@ -233,7 +235,7 @@ public abstract class P5<A, B, C, D, E> {
    * @return the 1-product projection over the fifth element.
    */
   public final P1<E> _5_() {
-    return P5.<A, B, C, D, E>__5().lazy().f(this);
+    return F1Functions.lazy(P5.<A, B, C, D, E>__5()).f(this);
   }
 
   /**
@@ -242,12 +244,13 @@ public abstract class P5<A, B, C, D, E> {
    * @return A P5 that calls this P5 once for any given element and remembers the value for subsequent calls.
    */
   public final P5<A, B, C, D, E> memo() {
+      P5<A, B, C, D, E> self = this;
     return new P5<A, B, C, D, E>() {
-      private final P1<A> a = _1_().memo();
-      private final P1<B> b = _2_().memo();
-      private final P1<C> c = _3_().memo();
-      private final P1<D> d = _4_().memo();
-      private final P1<E> e = _5_().memo();
+      private final P1<A> a = weakMemo(self::_1);
+      private final P1<B> b = weakMemo(self::_2);
+      private final P1<C> c = weakMemo(self::_3);
+      private final P1<D> d = weakMemo(self::_4);
+      private final P1<E> e = weakMemo(self::_5);
 
       public A _1() {
         return a._1();
@@ -277,11 +280,7 @@ public abstract class P5<A, B, C, D, E> {
    * @return A function that returns the first element of a product.
    */
   public static <A, B, C, D, E> F<P5<A, B, C, D, E>, A> __1() {
-    return new F<P5<A, B, C, D, E>, A>() {
-      public A f(final P5<A, B, C, D, E> p) {
-        return p._1();
-      }
-    };
+    return P5::_1;
   }
 
   /**
@@ -290,11 +289,7 @@ public abstract class P5<A, B, C, D, E> {
    * @return A function that returns the second element of a product.
    */
   public static <A, B, C, D, E> F<P5<A, B, C, D, E>, B> __2() {
-    return new F<P5<A, B, C, D, E>, B>() {
-      public B f(final P5<A, B, C, D, E> p) {
-        return p._2();
-      }
-    };
+    return P5::_2;
   }
 
   /**
@@ -303,11 +298,7 @@ public abstract class P5<A, B, C, D, E> {
    * @return A function that returns the third element of a product.
    */
   public static <A, B, C, D, E> F<P5<A, B, C, D, E>, C> __3() {
-    return new F<P5<A, B, C, D, E>, C>() {
-      public C f(final P5<A, B, C, D, E> p) {
-        return p._3();
-      }
-    };
+    return P5::_3;
   }
 
   /**
@@ -316,11 +307,7 @@ public abstract class P5<A, B, C, D, E> {
    * @return A function that returns the fourth element of a product.
    */
   public static <A, B, C, D, E> F<P5<A, B, C, D, E>, D> __4() {
-    return new F<P5<A, B, C, D, E>, D>() {
-      public D f(final P5<A, B, C, D, E> p) {
-        return p._4();
-      }
-    };
+    return P5::_4;
   }
 
   /**
@@ -329,10 +316,23 @@ public abstract class P5<A, B, C, D, E> {
    * @return A function that returns the fifth element of a product.
    */
   public static <A, B, C, D, E> F<P5<A, B, C, D, E>, E> __5() {
-    return new F<P5<A, B, C, D, E>, E>() {
-      public E f(final P5<A, B, C, D, E> p) {
-        return p._5();
-      }
-    };
+    return P5::_5;
   }
+
+  @Override
+	public final String toString() {
+		return Show.p5Show(Show.<A>anyShow(), Show.<B>anyShow(), Show.<C>anyShow(), Show.<D>anyShow(), Show.<E>anyShow()).showS(this);
+	}
+
+  @Override
+  public final boolean equals(Object other) {
+    return Equal.equals0(P5.class, this, other,
+        () -> Equal.p5Equal(Equal.anyEqual(), Equal.anyEqual(), Equal.anyEqual(), Equal.anyEqual(), Equal.anyEqual()));
+  }
+
+  @Override
+  public final int hashCode() {
+    return Hash.p5Hash(Hash.<A>anyHash(), Hash.<B>anyHash(), Hash.<C>anyHash(), Hash.<D>anyHash(), Hash.<E>anyHash()).hash(this);
+  }
+
 }

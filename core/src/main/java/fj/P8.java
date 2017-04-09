@@ -1,11 +1,13 @@
 package fj;
 
+import static fj.P.weakMemo;
+
 /**
  * A product-8.
  *
  * @version %build.number%
  */
-@SuppressWarnings({"UnnecessaryFullyQualifiedName"})
+@SuppressWarnings("UnnecessaryFullyQualifiedName")
 public abstract class P8<A, B, C, D, E, F, G, H> {
   /**
    * Access the first element of the product.
@@ -406,7 +408,7 @@ public abstract class P8<A, B, C, D, E, F, G, H> {
    * @return the 1-product projection over the first element.
    */
   public final P1<A> _1_() {
-    return P8.<A, B, C, D, E, F, G, H>__1().lazy().f(this);
+    return F1Functions.lazy(P8.<A, B, C, D, E, F, G, H>__1()).f(this);
   }
 
   /**
@@ -415,7 +417,7 @@ public abstract class P8<A, B, C, D, E, F, G, H> {
    * @return the 1-product projection over the second element.
    */
   public final P1<B> _2_() {
-    return P8.<A, B, C, D, E, F, G, H>__2().lazy().f(this);
+    return F1Functions.lazy(P8.<A, B, C, D, E, F, G, H>__2()).f(this);
   }
 
   /**
@@ -424,7 +426,7 @@ public abstract class P8<A, B, C, D, E, F, G, H> {
    * @return the 1-product projection over the third element.
    */
   public final P1<C> _3_() {
-    return P8.<A, B, C, D, E, F, G, H>__3().lazy().f(this);
+    return F1Functions.lazy(P8.<A, B, C, D, E, F, G, H>__3()).f(this);
   }
 
   /**
@@ -433,7 +435,7 @@ public abstract class P8<A, B, C, D, E, F, G, H> {
    * @return the 1-product projection over the fourth element.
    */
   public final P1<D> _4_() {
-    return P8.<A, B, C, D, E, F, G, H>__4().lazy().f(this);
+    return F1Functions.lazy(P8.<A, B, C, D, E, F, G, H>__4()).f(this);
   }
 
   /**
@@ -442,7 +444,7 @@ public abstract class P8<A, B, C, D, E, F, G, H> {
    * @return the 1-product projection over the fifth element.
    */
   public final P1<E> _5_() {
-    return P8.<A, B, C, D, E, F, G, H>__5().lazy().f(this);
+    return F1Functions.lazy(P8.<A, B, C, D, E, F, G, H>__5()).f(this);
   }
 
   /**
@@ -451,7 +453,7 @@ public abstract class P8<A, B, C, D, E, F, G, H> {
    * @return the 1-product projection over the sixth element.
    */
   public final P1<F> _6_() {
-    return P8.<A, B, C, D, E, F, G, H>__6().lazy().f(this);
+    return F1Functions.lazy(P8.<A, B, C, D, E, F, G, H>__6()).f(this);
   }
 
   /**
@@ -460,7 +462,7 @@ public abstract class P8<A, B, C, D, E, F, G, H> {
    * @return the 1-product projection over the seventh element.
    */
   public final P1<G> _7_() {
-    return P8.<A, B, C, D, E, F, G, H>__7().lazy().f(this);
+    return F1Functions.lazy(P8.<A, B, C, D, E, F, G, H>__7()).f(this);
   }
 
   /**
@@ -469,7 +471,7 @@ public abstract class P8<A, B, C, D, E, F, G, H> {
    * @return the 1-product projection over the eighth element.
    */
   public final P1<H> _8_() {
-    return P8.<A, B, C, D, E, F, G, H>__8().lazy().f(this);
+    return F1Functions.lazy(P8.<A, B, C, D, E, F, G, H>__8()).f(this);
   }
 
   /**
@@ -478,15 +480,16 @@ public abstract class P8<A, B, C, D, E, F, G, H> {
    * @return A P8 that calls this P8 once for any given element and remembers the value for subsequent calls.
    */
   public final P8<A, B, C, D, E, F, G, H> memo() {
+      P8<A, B, C, D, E, F, G, H> self = this;
     return new P8<A, B, C, D, E, F, G, H>() {
-      private final P1<A> a = _1_().memo();
-      private final P1<B> b = _2_().memo();
-      private final P1<C> c = _3_().memo();
-      private final P1<D> d = _4_().memo();
-      private final P1<E> e = _5_().memo();
-      private final P1<F> f = _6_().memo();
-      private final P1<G> g = _7_().memo();
-      private final P1<H> h = _8_().memo();
+      private final P1<A> a = weakMemo(self::_1);
+      private final P1<B> b = weakMemo(self::_2);
+      private final P1<C> c = weakMemo(self::_3);
+      private final P1<D> d = weakMemo(self::_4);
+      private final P1<E> e = weakMemo(self::_5);
+      private final P1<F> f = weakMemo(self::_6);
+      private final P1<G> g = weakMemo(self::_7);
+      private final P1<H> h = weakMemo(self::_8);
 
       public A _1() {
         return a._1();
@@ -529,11 +532,7 @@ public abstract class P8<A, B, C, D, E, F, G, H> {
    * @return A function that returns the first element of a product.
    */
   public static <A, B, C, D, E, F$, G, H> fj.F<P8<A, B, C, D, E, F$, G, H>, A> __1() {
-    return new fj.F<P8<A, B, C, D, E, F$, G, H>, A>() {
-      public A f(final P8<A, B, C, D, E, F$, G, H> p) {
-        return p._1();
-      }
-    };
+    return P8::_1;
   }
 
   /**
@@ -542,11 +541,7 @@ public abstract class P8<A, B, C, D, E, F, G, H> {
    * @return A function that returns the second element of a product.
    */
   public static <A, B, C, D, E, F$, G, H> fj.F<P8<A, B, C, D, E, F$, G, H>, B> __2() {
-    return new fj.F<P8<A, B, C, D, E, F$, G, H>, B>() {
-      public B f(final P8<A, B, C, D, E, F$, G, H> p) {
-        return p._2();
-      }
-    };
+    return P8::_2;
   }
 
   /**
@@ -555,11 +550,7 @@ public abstract class P8<A, B, C, D, E, F, G, H> {
    * @return A function that returns the third element of a product.
    */
   public static <A, B, C, D, E, F$, G, H> fj.F<P8<A, B, C, D, E, F$, G, H>, C> __3() {
-    return new fj.F<P8<A, B, C, D, E, F$, G, H>, C>() {
-      public C f(final P8<A, B, C, D, E, F$, G, H> p) {
-        return p._3();
-      }
-    };
+    return P8::_3;
   }
 
   /**
@@ -568,11 +559,7 @@ public abstract class P8<A, B, C, D, E, F, G, H> {
    * @return A function that returns the fourth element of a product.
    */
   public static <A, B, C, D, E, F$, G, H> fj.F<P8<A, B, C, D, E, F$, G, H>, D> __4() {
-    return new fj.F<P8<A, B, C, D, E, F$, G, H>, D>() {
-      public D f(final P8<A, B, C, D, E, F$, G, H> p) {
-        return p._4();
-      }
-    };
+    return P8::_4;
   }
 
   /**
@@ -581,11 +568,7 @@ public abstract class P8<A, B, C, D, E, F, G, H> {
    * @return A function that returns the fifth element of a product.
    */
   public static <A, B, C, D, E, F$, G, H> fj.F<P8<A, B, C, D, E, F$, G, H>, E> __5() {
-    return new fj.F<P8<A, B, C, D, E, F$, G, H>, E>() {
-      public E f(final P8<A, B, C, D, E, F$, G, H> p) {
-        return p._5();
-      }
-    };
+    return P8::_5;
   }
 
   /**
@@ -594,11 +577,7 @@ public abstract class P8<A, B, C, D, E, F, G, H> {
    * @return A function that returns the sixth element of a product.
    */
   public static <A, B, C, D, E, F$, G, H> fj.F<P8<A, B, C, D, E, F$, G, H>, F$> __6() {
-    return new fj.F<P8<A, B, C, D, E, F$, G, H>, F$>() {
-      public F$ f(final P8<A, B, C, D, E, F$, G, H> p) {
-        return p._6();
-      }
-    };
+    return P8::_6;
   }
 
   /**
@@ -607,11 +586,7 @@ public abstract class P8<A, B, C, D, E, F, G, H> {
    * @return A function that returns the seventh element of a product.
    */
   public static <A, B, C, D, E, F$, G, H> fj.F<P8<A, B, C, D, E, F$, G, H>, G> __7() {
-    return new fj.F<P8<A, B, C, D, E, F$, G, H>, G>() {
-      public G f(final P8<A, B, C, D, E, F$, G, H> p) {
-        return p._7();
-      }
-    };
+    return P8::_7;
   }
 
   /**
@@ -620,10 +595,23 @@ public abstract class P8<A, B, C, D, E, F, G, H> {
    * @return A function that returns the eighth element of a product.
    */
   public static <A, B, C, D, E, F$, G, H> fj.F<P8<A, B, C, D, E, F$, G, H>, H> __8() {
-    return new fj.F<P8<A, B, C, D, E, F$, G, H>, H>() {
-      public H f(final P8<A, B, C, D, E, F$, G, H> p) {
-        return p._8();
-      }
-    };
+    return P8::_8;
   }
+
+  @Override
+	public final String toString() {
+		return Show.p8Show(Show.<A>anyShow(), Show.<B>anyShow(), Show.<C>anyShow(), Show.<D>anyShow(), Show.<E>anyShow(), Show.<F>anyShow(), Show.<G>anyShow(), Show.<H>anyShow()).showS(this);
+	}
+
+  @Override
+  public final boolean equals(Object other) {
+    return Equal.equals0(P8.class, this, other,
+        () -> Equal.p8Equal(Equal.anyEqual(), Equal.anyEqual(), Equal.anyEqual(), Equal.anyEqual(), Equal.anyEqual(), Equal.anyEqual(), Equal.anyEqual(), Equal.anyEqual()));
+  }
+
+  @Override
+  public final int hashCode() {
+    return Hash.p8Hash(Hash.<A>anyHash(), Hash.<B>anyHash(), Hash.<C>anyHash(), Hash.<D>anyHash(), Hash.<E>anyHash(), Hash.<F>anyHash(), Hash.<G>anyHash(), Hash.<H>anyHash()).hash(this);
+  }
+
 }

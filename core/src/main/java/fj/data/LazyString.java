@@ -1,13 +1,10 @@
 package fj.data;
 
-import fj.Equal;
-import fj.F;
-import fj.F2;
+import fj.*;
+
 import static fj.Function.compose;
 import static fj.Function.curry;
 import static fj.P.p;
-import fj.P1;
-import fj.P2;
 import static fj.data.Option.none;
 import static fj.data.Option.some;
 import static fj.data.Stream.join;
@@ -35,14 +32,12 @@ public final class LazyString implements CharSequence {
    * @return A lazy string with the characters from the given string.
    */
   public static LazyString str(final String s) {
-    return new LazyString(Stream.unfold(new F<P2<String, Integer>, Option<P2<Character, P2<String, Integer>>>>() {
-      public Option<P2<Character, P2<String, Integer>>> f(final P2<String, Integer> o) {
-        final String s = o._1();
+    return new LazyString(Stream.unfold(o -> {
+        final String s2 = o._1();
         final int n = o._2();
         final Option<P2<Character, P2<String, Integer>>> none = none();
-        return s.length() <= n ? none : some(p(s.charAt(n), p(s, n + 1)));
-      }
-    }, p(s, 0)));
+        return s2.length() <= n ? none : some(p(s2.charAt(n), p(s2, n + 1)));
+      }, p(s, 0)));
   }
 
   /**
@@ -107,8 +102,23 @@ public final class LazyString implements CharSequence {
    *
    * @return The String representation of this lazy string.
    */
+  public String toStringEager() {
+    final StringBuilder builder = new StringBuilder(length() + 16);
+    s.foreachDoEffect(c -> builder.append(c.charValue()));
+    return builder.toString();
+  }
+
+  public String toStringLazy() {
+    return s.isEmpty() ? "" : "LazyString(" + Show.charShow.showS(s.head()) + ", ?)";
+  }
+
+  @Override
   public String toString() {
-    return new StringBuilder(this).toString();
+    return toStringLazy();
+  }
+
+  public String eval() {
+    return toStringEager();
   }
 
   /**
@@ -168,11 +178,7 @@ public final class LazyString implements CharSequence {
    * @return A function that yields true if the first argument is a prefix of the second.
    */
   public static F<LazyString, F<LazyString, Boolean>> startsWith() {
-    return curry(new F2<LazyString, LazyString, Boolean>() {
-      public Boolean f(final LazyString needle, final LazyString haystack) {
-        return haystack.startsWith(needle);
-      }
-    });
+    return curry((needle, haystack) -> haystack.startsWith(needle));
   }
 
   /**
@@ -218,7 +224,7 @@ public final class LazyString implements CharSequence {
    * @return The first index of the given character in this lazy string, or None if the character is not present.
    */
   public Option<Integer> indexOf(final char c) {
-    return s.indexOf(Equal.charEqual.eq(c));
+    return s.indexOf(charEqual.eq(c));
   }
 
   /**
@@ -250,12 +256,16 @@ public final class LazyString implements CharSequence {
   public Stream<LazyString> split(final F<Character, Boolean> p) {
     final Stream<Character> findIt = s.dropWhile(p);
     final P2<Stream<Character>, Stream<Character>> ws = findIt.split(p);
-    return findIt.isEmpty() ? Stream.<LazyString>nil()
-                            : Stream.cons(fromStream(ws._1()), new P1<Stream<LazyString>>() {
-                              public Stream<LazyString> _1() {
-                                return fromStream(ws._2()).split(p);
-                              }
-                            });
+    return findIt.isEmpty() ? Stream.nil()
+                            : Stream.cons(fromStream(ws._1()), () -> fromStream(ws._2()).split(p));
+  }
+
+  public LazyString map(F<Character, Character> f) {
+    return fromStream(s.map(f));
+  }
+
+  public LazyString bind(F<Character, LazyString> f) {
+    return fromStream(s.bind(c -> f.f(c).toStream()));
   }
 
   /**
@@ -286,6 +296,10 @@ public final class LazyString implements CharSequence {
     return split('\n');
   }
 
+  public static F<LazyString, Stream<LazyString>> lines_() {
+    return LazyString::lines;
+  }
+
   /**
    * Joins the given stream of lazy strings into one, separated by newlines.
    *
@@ -294,6 +308,10 @@ public final class LazyString implements CharSequence {
    */
   public static LazyString unlines(final Stream<LazyString> str) {
     return fromStream(join(str.intersperse(str("\n")).map(toStream)));
+  }
+
+  public static F<Stream<LazyString>, LazyString> unlines_() {
+    return LazyString::unlines;
   }
 
   /**
@@ -310,31 +328,19 @@ public final class LazyString implements CharSequence {
    * First-class conversion from lazy strings to streams.
    */
   public static final F<LazyString, Stream<Character>> toStream =
-      new F<LazyString, Stream<Character>>() {
-        public Stream<Character> f(final LazyString string) {
-          return string.toStream();
-        }
-      };
+          LazyString::toStream;
 
   /**
    * First-class conversion from lazy strings to String.
    */
   public static final F<LazyString, String> toString =
-      new F<LazyString, String>() {
-        public String f(final LazyString string) {
-          return string.toString();
-        }
-      };
+          LazyString::toString;
 
   /**
    * First-class conversion from character streams to lazy strings.
    */
   public static final F<Stream<Character>, LazyString> fromStream =
-      new F<Stream<Character>, LazyString>() {
-        public LazyString f(final Stream<Character> s) {
-          return fromStream(s);
-        }
-      };
+          LazyString::fromStream;
 
   private static final Equal<Stream<Character>> eqS = streamEqual(charEqual);
 

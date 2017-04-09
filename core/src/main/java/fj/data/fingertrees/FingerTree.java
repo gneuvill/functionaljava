@@ -1,9 +1,13 @@
 package fj.data.fingertrees;
 
-import fj.F;
-import fj.P2;
+import fj.*;
+import fj.data.Option;
 import fj.data.Seq;
-import fj.Monoid;
+import fj.data.Stream;
+
+import static fj.Monoid.intAdditionMonoid;
+import static fj.Monoid.intMaxMonoid;
+import static fj.data.Stream.nil;
 
 /**
  * Provides 2-3 finger trees, a functional representation of persistent sequences supporting access to the ends in
@@ -32,6 +36,10 @@ public abstract class FingerTree<V, A> {
    */
   public abstract <B> B foldRight(final F<A, F<B, B>> f, final B z);
 
+    public final <B> B foldRight(final F2<A, B, B> f, final B z) {
+        return foldRight(F2Functions.curry(f), z);
+    }
+
   /**
    * Folds the tree to the right with the given function.
    *
@@ -48,6 +56,10 @@ public abstract class FingerTree<V, A> {
    * @return A reduction of this tree by applying the given function, associating to the left.
    */
   public abstract <B> B foldLeft(final F<B, F<A, B>> f, final B z);
+
+    public final <B> B foldLeft(final F2<B, A, B> f, final B z) {
+        return foldLeft(F2Functions.curry(f), z);
+    }
 
   /**
    * Folds the tree to the left with the given function.
@@ -67,6 +79,11 @@ public abstract class FingerTree<V, A> {
    */
   public abstract <B> FingerTree<V, B> map(final F<A, B> f, final Measured<V, B> m);
 
+    public final <B> FingerTree<V, A> filter(final F<A, Boolean> f) {
+        FingerTree<V, A> tree = new Empty<>(m);
+        return foldLeft((acc, a) -> f.f(a) ? acc.snoc(a) : acc, tree);
+    }
+
   /**
    * Returns the sum of this tree's annotations.
    *
@@ -82,8 +99,8 @@ public abstract class FingerTree<V, A> {
   public final boolean isEmpty() {
     return this instanceof Empty;
   }
-
-  Measured<V, A> measured() {
+  
+  public final Measured<V, A> measured() {
     return m;
   }
 
@@ -120,7 +137,7 @@ public abstract class FingerTree<V, A> {
    * @return A builder of trees and tree components that annotates them using the given Measured instance.
    */
   public static <V, A> MakeTree<V, A> mkTree(final Measured<V, A> m) {
-    return new MakeTree<V, A>(m);
+    return new MakeTree<>(m);
   }
 
   /**
@@ -140,6 +157,50 @@ public abstract class FingerTree<V, A> {
   public abstract FingerTree<V, A> snoc(final A a);
 
   /**
+   * The first element of this tree. This is an O(1) operation.
+   *
+   * @return The first element if this tree is nonempty, otherwise throws an error.
+   */
+  public abstract A head();
+
+  public final Option<A> headOption() {
+      return isEmpty() ? Option.none() : Option.some(head());
+  }
+
+  /**
+   * Performs a reduction on this finger tree using the given arguments.
+   *
+   * @param nil  The value to return if this finger tree is empty.
+   * @param cons The function to apply to the head and tail of this finger tree  if it is not empty.
+   * @return A reduction on this finger tree.
+   */
+  public final <B> B uncons(B nil, F2<A, FingerTree<V, A>, B> cons) {
+    return isEmpty() ? nil : cons.f(head(), tail());
+  }
+
+
+  /**
+   * The last element of this tree. This is an O(1) operation.
+   *
+   * @return The last element if this tree is nonempty, otherwise throws an error.
+   */
+  public abstract A last();
+
+  /**
+   * The tree without the first element. This is an O(1) operation.
+   *
+   * @return The tree without the first element if this tree is nonempty, otherwise throws an error.
+   */
+  public abstract FingerTree<V, A> tail();
+
+  /**
+   * The tree without the last element. This is an O(1) operation.
+   *
+   * @return The tree without the last element if this tree is nonempty, otherwise throws an error.
+   */
+  public abstract FingerTree<V, A> init();
+
+  /**
    * Appends one finger tree to another.
    *
    * @param t A finger tree to append to this one.
@@ -147,5 +208,61 @@ public abstract class FingerTree<V, A> {
    */
   public abstract FingerTree<V, A> append(final FingerTree<V, A> t);
 
+  /**
+   * Splits this tree into a pair of subtrees at the point where the given predicate, based on the measure,
+   * changes from <code>false</code> to <code>true</code>. This is a O(log(n)) operation.
+   *
+   * @return Pair: the subtree containing elements before the point where <code>pred</code> first holds and the subtree
+   *   containing element at and after the point where <code>pred</code> first holds. Empty if <code>pred</code> never holds.
+   */
+  public final P2<FingerTree<V, A>, FingerTree<V, A>> split(final F<V, Boolean> predicate) {
+    if (!isEmpty() && predicate.f(measure())) {
+      final P3<FingerTree<V, A>, A, FingerTree<V, A>> lxr = split1(predicate);
+      return P.p(lxr._1(), lxr._3().cons(lxr._2()));
+    } else {
+      return P.p(this, mkTree(m).empty());
+    }
+  }
+
+  /**
+   * Like <code>split</code>, but returns the element where <code>pred</code> first holds separately.
+   *
+   * Throws an error if the tree is empty.
+   */
+  public final P3<FingerTree<V, A>, A, FingerTree<V, A>> split1(final F<V, Boolean> predicate) {
+    return split1(predicate, measured().zero());
+  }
+
+  abstract P3<FingerTree<V, A>, A, FingerTree<V, A>> split1(final F<V, Boolean> predicate, final V acc);
+
   public abstract P2<Integer, A> lookup(final F<V, Integer> o, final int i);
+
+    public abstract int length();
+
+    public static <A> FingerTree<Integer, A> emptyIntAddition() {
+      return empty(intAdditionMonoid, Function.constant(1));
+    }
+
+  /**
+   * Creates an empty finger tree with elements of type A and node annotations
+   * of type V.
+   *
+   * @param m A monoid to combine node annotations
+   * @param f Function to convert node element to annotation.
+   * @return An empty finger tree.
+   */
+  public static <V, A> FingerTree<V, A> empty(Monoid<V> m, F<A, V> f) {
+    return FingerTree.mkTree(measured(m, f)).empty();
+  }
+
+  /**
+   * Returns a finger tree which combines the integer node annotations with the
+   * maximum function.  A priority queue with integer priorities.
+   */
+  public static <A> FingerTree<Integer, P2<Integer, A>> emptyIntMax() {
+    return empty(intMaxMonoid, (P2<Integer, A> p) -> p._1());
+  }
+
+  public abstract Stream<A> toStream();
+
 }

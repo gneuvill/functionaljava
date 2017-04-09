@@ -1,11 +1,7 @@
 package fj.data.vector;
 
-import fj.F;
-import fj.F2;
-import fj.P1;
-import fj.P2;
-import fj.P6;
-import fj.P7;
+import fj.*;
+
 import static fj.Function.curry;
 import static fj.P.p2;
 import fj.data.Array;
@@ -34,35 +30,32 @@ public final class V7<A> implements Iterable<A> {
    * @return A new vector-7.
    */
   public static <A> V7<A> p(final P7<A, A, A, A, A, A, A> p) {
-    return new V7<A>(new P1<A>() {
-      public A _1() {
-        return p._1();
-      }
-    }, V6.p(new P6<A, A, A, A, A, A>() {
-      public A _1() {
-        return p._2();
-      }
+    return new V7<>(P.lazy(p::_1),
+        V6.p(new P6<A, A, A, A, A, A>() {
+          public A _1() {
+            return p._2();
+          }
 
-      public A _2() {
-        return p._3();
-      }
+          public A _2() {
+            return p._3();
+          }
 
-      public A _3() {
-        return p._4();
-      }
+          public A _3() {
+            return p._4();
+          }
 
-      public A _4() {
-        return p._5();
-      }
+          public A _4() {
+            return p._5();
+          }
 
-      public A _5() {
-        return p._6();
-      }
+          public A _5() {
+            return p._6();
+          }
 
-      public A _6() {
-        return p._7();
-      }
-    }));
+          public A _6() {
+            return p._7();
+          }
+        }));
   }
 
   /**
@@ -73,7 +66,7 @@ public final class V7<A> implements Iterable<A> {
    * @return The new vector.
    */
   public static <A> V7<A> cons(final P1<A> head, final V6<A> tail) {
-    return new V7<A>(head, tail);
+    return new V7<>(head, tail);
   }
 
   /**
@@ -218,11 +211,7 @@ public final class V7<A> implements Iterable<A> {
    * @return a stream of the elements of this vector.
    */
   public Stream<A> toStream() {
-    return Stream.cons(head._1(), new P1<Stream<A>>() {
-      public Stream<A> _1() {
-        return tail.toStream();
-      }
-    });
+    return Stream.cons(head._1(), tail::toStream);
   }
 
   /**
@@ -242,7 +231,7 @@ public final class V7<A> implements Iterable<A> {
    * @return A new vector after the given function has been applied to each element.
    */
   public <B> V7<B> map(final F<A, B> f) {
-    return new V7<B>(head.map(f), tail.map(f));
+    return new V7<>(head.map(f), tail.map(f));
   }
 
   /**
@@ -252,7 +241,7 @@ public final class V7<A> implements Iterable<A> {
    * @return A new vector after zipping the given vector of functions over this vector.
    */
   public <B> V7<B> apply(final V7<F<A, B>> vf) {
-    return new V7<B>(P1.<A, B>apply(head, vf.head()), tail.apply(vf.tail()));
+    return new V7<>(head.apply(vf.head()), tail.apply(vf.tail()));
   }
 
   /**
@@ -295,11 +284,7 @@ public final class V7<A> implements Iterable<A> {
    * @return a function that transforms a vector-7 to a stream of its elements.
    */
   public static <A> F<V7<A>, Stream<A>> toStream_() {
-    return new F<V7<A>, Stream<A>>() {
-      public Stream<A> f(final V7<A> v) {
-        return v.toStream();
-      }
-    };
+    return V7::toStream;
   }
 
   /**
@@ -308,11 +293,7 @@ public final class V7<A> implements Iterable<A> {
    * @return a function that transforms a vector-7 to the equivalent product-7.
    */
   public static <A> F<V7<A>, P7<A, A, A, A, A, A, A>> p_() {
-    return new F<V7<A>, P7<A, A, A, A, A, A, A>>() {
-      public P7<A, A, A, A, A, A, A> f(final V7<A> v) {
-        return v.p();
-      }
-    };
+    return V7::p;
   }
 
   /**
@@ -321,11 +302,7 @@ public final class V7<A> implements Iterable<A> {
    * @return a function that gets the first element of a given vector.
    */
   public static <A> F<V7<A>, A> __1() {
-    return new F<V7<A>, A>() {
-      public A f(final V7<A> v) {
-        return v._1();
-      }
-    };
+    return V7::_1;
   }
 
   /**
@@ -334,11 +311,7 @@ public final class V7<A> implements Iterable<A> {
    * @return a function that gets the second element of a given vector.
    */
   public static <A> F<V7<A>, A> __2() {
-    return new F<V7<A>, A>() {
-      public A f(final V7<A> v) {
-        return v._2();
-      }
-    };
+    return V7::_2;
   }
 
   /**
@@ -347,11 +320,7 @@ public final class V7<A> implements Iterable<A> {
    * @return a function that gets the third element of a given vector.
    */
   public static <A> F<V7<A>, A> __3() {
-    return new F<V7<A>, A>() {
-      public A f(final V7<A> v) {
-        return v._3();
-      }
-    };
+    return V7::_3;
   }
 
   /**
@@ -360,11 +329,7 @@ public final class V7<A> implements Iterable<A> {
    * @return a function that gets the fourth element of a given vector.
    */
   public static <A> F<V7<A>, A> __4() {
-    return new F<V7<A>, A>() {
-      public A f(final V7<A> v) {
-        return v._4();
-      }
-    };
+    return V7::_4;
   }
 
   /**
@@ -373,11 +338,7 @@ public final class V7<A> implements Iterable<A> {
    * @return a function that gets the fifth element of a given vector.
    */
   public static <A> F<V7<A>, A> __5() {
-    return new F<V7<A>, A>() {
-      public A f(final V7<A> v) {
-        return v._5();
-      }
-    };
+    return V7::_5;
   }
 
   /**
@@ -386,11 +347,7 @@ public final class V7<A> implements Iterable<A> {
    * @return a function that gets the sixth element of a given vector.
    */
   public static <A> F<V7<A>, A> __6() {
-    return new F<V7<A>, A>() {
-      public A f(final V7<A> v) {
-        return v._6();
-      }
-    };
+    return V7::_6;
   }
 
   /**
@@ -399,11 +356,7 @@ public final class V7<A> implements Iterable<A> {
    * @return a function that gets the seventh element of a given vector.
    */
   public static <A> F<V7<A>, A> __7() {
-    return new F<V7<A>, A>() {
-      public A f(final V7<A> v) {
-        return v._7();
-      }
-    };
+    return V7::_7;
   }
 
 }

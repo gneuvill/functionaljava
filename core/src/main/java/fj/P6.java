@@ -1,11 +1,13 @@
 package fj;
 
+import static fj.P.weakMemo;
+
 /**
  * A product-6.
  *
  * @version %build.number%
  */
-@SuppressWarnings({"UnnecessaryFullyQualifiedName"})
+@SuppressWarnings("UnnecessaryFullyQualifiedName")
 public abstract class P6<A, B, C, D, E, F> {
   /**
    * Access the first element of the product.
@@ -259,7 +261,7 @@ public abstract class P6<A, B, C, D, E, F> {
    * @return the 1-product projection over the first element.
    */
   public final P1<A> _1_() {
-    return P6.<A, B, C, D, E, F>__1().lazy().f(this);
+    return F1Functions.lazy(P6.<A, B, C, D, E, F>__1()).f(this);
   }
 
   /**
@@ -268,7 +270,7 @@ public abstract class P6<A, B, C, D, E, F> {
    * @return the 1-product projection over the second element.
    */
   public final P1<B> _2_() {
-    return P6.<A, B, C, D, E, F>__2().lazy().f(this);
+    return F1Functions.lazy(P6.<A, B, C, D, E, F>__2()).f(this);
   }
 
   /**
@@ -277,7 +279,7 @@ public abstract class P6<A, B, C, D, E, F> {
    * @return the 1-product projection over the third element.
    */
   public final P1<C> _3_() {
-    return P6.<A, B, C, D, E, F>__3().lazy().f(this);
+    return F1Functions.lazy(P6.<A, B, C, D, E, F>__3()).f(this);
   }
 
   /**
@@ -286,7 +288,7 @@ public abstract class P6<A, B, C, D, E, F> {
    * @return the 1-product projection over the fourth element.
    */
   public final P1<D> _4_() {
-    return P6.<A, B, C, D, E, F>__4().lazy().f(this);
+    return F1Functions.lazy(P6.<A, B, C, D, E, F>__4()).f(this);
   }
 
   /**
@@ -295,7 +297,7 @@ public abstract class P6<A, B, C, D, E, F> {
    * @return the 1-product projection over the fifth element.
    */
   public final P1<E> _5_() {
-    return P6.<A, B, C, D, E, F>__5().lazy().f(this);
+    return F1Functions.lazy(P6.<A, B, C, D, E, F>__5()).f(this);
   }
 
   /**
@@ -304,7 +306,7 @@ public abstract class P6<A, B, C, D, E, F> {
    * @return the 1-product projection over the sixth element.
    */
   public final P1<F> _6_() {
-    return P6.<A, B, C, D, E, F>__6().lazy().f(this);
+    return F1Functions.lazy(P6.<A, B, C, D, E, F>__6()).f(this);
   }
 
   /**
@@ -313,13 +315,14 @@ public abstract class P6<A, B, C, D, E, F> {
    * @return A P6 that calls this P6 once for any given element and remembers the value for subsequent calls.
    */
   public final P6<A, B, C, D, E, F> memo() {
+      P6<A, B, C, D, E, F> self = this;
     return new P6<A, B, C, D, E, F>() {
-      private final P1<A> a = _1_().memo();
-      private final P1<B> b = _2_().memo();
-      private final P1<C> c = _3_().memo();
-      private final P1<D> d = _4_().memo();
-      private final P1<E> e = _5_().memo();
-      private final P1<F> f = _6_().memo();
+      private final P1<A> a = weakMemo(self::_1);
+      private final P1<B> b = weakMemo(self::_2);
+      private final P1<C> c = weakMemo(self::_3);
+      private final P1<D> d = weakMemo(self::_4);
+      private final P1<E> e = weakMemo(self::_5);
+      private final P1<F> f = weakMemo(self::_6);
 
       public A _1() {
         return a._1();
@@ -354,11 +357,7 @@ public abstract class P6<A, B, C, D, E, F> {
    * @return A function that returns the first element of a product.
    */
   public static <A, B, C, D, E, F$> fj.F<P6<A, B, C, D, E, F$>, A> __1() {
-    return new fj.F<P6<A, B, C, D, E, F$>, A>() {
-      public A f(final P6<A, B, C, D, E, F$> p) {
-        return p._1();
-      }
-    };
+    return P6::_1;
   }
 
   /**
@@ -367,11 +366,7 @@ public abstract class P6<A, B, C, D, E, F> {
    * @return A function that returns the second element of a product.
    */
   public static <A, B, C, D, E, F$> fj.F<P6<A, B, C, D, E, F$>, B> __2() {
-    return new fj.F<P6<A, B, C, D, E, F$>, B>() {
-      public B f(final P6<A, B, C, D, E, F$> p) {
-        return p._2();
-      }
-    };
+    return P6::_2;
   }
 
   /**
@@ -380,11 +375,7 @@ public abstract class P6<A, B, C, D, E, F> {
    * @return A function that returns the third element of a product.
    */
   public static <A, B, C, D, E, F$> fj.F<P6<A, B, C, D, E, F$>, C> __3() {
-    return new fj.F<P6<A, B, C, D, E, F$>, C>() {
-      public C f(final P6<A, B, C, D, E, F$> p) {
-        return p._3();
-      }
-    };
+    return P6::_3;
   }
 
   /**
@@ -393,11 +384,7 @@ public abstract class P6<A, B, C, D, E, F> {
    * @return A function that returns the fourth element of a product.
    */
   public static <A, B, C, D, E, F$> fj.F<P6<A, B, C, D, E, F$>, D> __4() {
-    return new fj.F<P6<A, B, C, D, E, F$>, D>() {
-      public D f(final P6<A, B, C, D, E, F$> p) {
-        return p._4();
-      }
-    };
+    return P6::_4;
   }
 
   /**
@@ -406,11 +393,7 @@ public abstract class P6<A, B, C, D, E, F> {
    * @return A function that returns the fifth element of a product.
    */
   public static <A, B, C, D, E, F$> fj.F<P6<A, B, C, D, E, F$>, E> __5() {
-    return new fj.F<P6<A, B, C, D, E, F$>, E>() {
-      public E f(final P6<A, B, C, D, E, F$> p) {
-        return p._5();
-      }
-    };
+    return P6::_5;
   }
 
   /**
@@ -419,10 +402,24 @@ public abstract class P6<A, B, C, D, E, F> {
    * @return A function that returns the sixth element of a product.
    */
   public static <A, B, C, D, E, F$> fj.F<P6<A, B, C, D, E, F$>, F$> __6() {
-    return new fj.F<P6<A, B, C, D, E, F$>, F$>() {
-      public F$ f(final P6<A, B, C, D, E, F$> p) {
-        return p._6();
-      }
-    };
+    return P6::_6;
   }
+
+    @Override
+	public final String toString() {
+		return Show.p6Show(Show.<A>anyShow(), Show.<B>anyShow(), Show.<C>anyShow(), Show.<D>anyShow(), Show.<E>anyShow(), Show.<F>anyShow()).showS(this);
+	}
+
+
+  @Override
+  public final boolean equals(Object other) {
+    return Equal.equals0(P6.class, this, other,
+        () -> Equal.p6Equal(Equal.anyEqual(), Equal.anyEqual(), Equal.anyEqual(), Equal.anyEqual(), Equal.anyEqual(), Equal.anyEqual()));
+  }
+
+  @Override
+  public final int hashCode() {
+    return Hash.p6Hash(Hash.<A>anyHash(), Hash.<B>anyHash(), Hash.<C>anyHash(), Hash.<D>anyHash(), Hash.<E>anyHash(), Hash.<F>anyHash()).hash(this);
+  }
+
 }

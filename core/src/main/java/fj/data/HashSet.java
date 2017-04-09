@@ -3,6 +3,9 @@ package fj.data;
 import fj.Equal;
 import fj.Hash;
 import fj.Unit;
+
+import static fj.Equal.anyEqual;
+import static fj.Hash.anyHash;
 import static fj.Unit.unit;
 
 import java.util.Collection;
@@ -33,7 +36,7 @@ public final class HashSet<A> implements Iterable<A> {
    * @param h The hashing strategy.
    */
   public HashSet(final Equal<A> e, final Hash<A> h) {
-    m = new HashMap<A, Unit>(e, h);
+    m = new HashMap<>(e, h);
   }
 
   /**
@@ -44,7 +47,7 @@ public final class HashSet<A> implements Iterable<A> {
    * @param initialCapacity The initial capacity.
    */
   public HashSet(final Equal<A> e, final Hash<A> h, final int initialCapacity) {
-    m = new HashMap<A, Unit>(e, h, initialCapacity);
+    m = new HashMap<>(e, h, initialCapacity);
   }
 
   /**
@@ -56,7 +59,7 @@ public final class HashSet<A> implements Iterable<A> {
    * @param loadFactor      The load factor.
    */
   public HashSet(final Equal<A> e, final Hash<A> h, final int initialCapacity, final float loadFactor) {
-    m = new HashMap<A, Unit>(e, h, initialCapacity, loadFactor);
+    m = new HashMap<>(e, h, initialCapacity, loadFactor);
   }
 
   /**
@@ -78,6 +81,84 @@ public final class HashSet<A> implements Iterable<A> {
    */
   public int hash(final A a) {
     return m.hash(a);
+  }
+
+  /**
+   * Creates a new HashSet using the given Equal and Hash
+   */
+  public static <A> HashSet<A> empty(final Equal<A> e, final Hash<A> h) {
+    return new HashSet<>(e, h);
+  }
+
+  /**
+   * Creates an empty HashSet
+   */
+  public static <A> HashSet<A> empty() {
+    return empty(anyEqual(), anyHash());
+  }
+
+  /**
+   * Create a HashSet from the Iterable.
+   */
+  public static <A> HashSet<A> iterableHashSet(final Iterable<A> it) {
+    return iterableHashSet(anyEqual(), anyHash(), it);
+  }
+
+  /**
+   * Create a HashSet from the Iterable.
+   */
+  public static <A> HashSet<A> iterableHashSet(final Equal<A> e, final Hash<A> h, final Iterable<A> it) {
+    final HashSet<A> hs = empty(e, h);
+    for (A a: it) {
+      hs.set(a);
+    }
+    return hs;
+  }
+
+  /**
+   * Create a HashSet from the Iterator.
+   */
+  public static <A> HashSet<A> iteratorHashSet(final Iterator<A> it) {
+    return iterableHashSet(() -> it);
+  }
+
+  /**
+   * Create a HashSet from the Iterator.
+   */
+  public static <A> HashSet<A> iteratorHashSet(final Equal<A> e, final Hash<A> h, final Iterator<A> it) {
+    return iterableHashSet(e, h, () -> it);
+  }
+
+  /**
+   * Create a HashSet from the array.
+   */
+  @SafeVarargs
+  public static <A> HashSet<A> arrayHashSet(final A...as) {
+    return iterableHashSet(Array.array(as));
+  }
+
+  /**
+   * Create a HashSet from the array.
+   */
+  @SafeVarargs
+  public static <A> HashSet<A> arrayHashSet(final Equal<A> e, final Hash<A> h, final A...as) {
+    return iterableHashSet(e, h, Array.array(as));
+  }
+
+  /**
+   * Create a HashSet from the array.
+   */
+  @SafeVarargs
+  public static <A> HashSet<A> hashSet(final A...as) {
+    return arrayHashSet(as);
+  }
+
+  /**
+   * Create a HashSet from the array.
+   */
+  @SafeVarargs
+  public static <A> HashSet<A> hashSet(final Equal<A> e, final Hash<A> h, final A...as) {
+    return arrayHashSet(e, h, as);
   }
 
   /**
@@ -142,6 +223,18 @@ public final class HashSet<A> implements Iterable<A> {
    */
   public List<A> toList() {
     return m.keys();
+  }
+
+  public java.util.List<A> toJavaList() {
+    return toList().toJavaList();
+  }
+
+  public java.util.Set<A> toJavaSet() {
+    return new java.util.HashSet<>(toCollection());
+  }
+
+  public static <A> HashSet<A> fromSet(java.util.Set<A> s) {
+    return iterableHashSet(s);
   }
 
   /**

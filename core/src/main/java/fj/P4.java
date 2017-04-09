@@ -1,5 +1,7 @@
 package fj;
 
+import static fj.P.weakMemo;
+
 /**
  * A product-4.
  *
@@ -144,7 +146,7 @@ public abstract class P4<A, B, C, D> {
    * @return the 1-product projection over the first element.
    */
   public final P1<A> _1_() {
-    return P4.<A, B, C, D>__1().lazy().f(this);
+    return F1Functions.lazy(P4.<A, B, C, D>__1()).f(this);
   }
 
   /**
@@ -153,7 +155,7 @@ public abstract class P4<A, B, C, D> {
    * @return the 1-product projection over the second element.
    */
   public final P1<B> _2_() {
-    return P4.<A, B, C, D>__2().lazy().f(this);
+    return F1Functions.lazy(P4.<A, B, C, D>__2()).f(this);
   }
 
   /**
@@ -162,7 +164,7 @@ public abstract class P4<A, B, C, D> {
    * @return the 1-product projection over the third element.
    */
   public final P1<C> _3_() {
-    return P4.<A, B, C, D>__3().lazy().f(this);
+    return F1Functions.lazy(P4.<A, B, C, D>__3()).f(this);
   }
 
   /**
@@ -171,7 +173,7 @@ public abstract class P4<A, B, C, D> {
    * @return the 1-product projection over the fourth element.
    */
   public final P1<D> _4_() {
-    return P4.<A, B, C, D>__4().lazy().f(this);
+    return F1Functions.lazy(P4.<A, B, C, D>__4()).f(this);
   }
 
   /**
@@ -180,11 +182,12 @@ public abstract class P4<A, B, C, D> {
    * @return A P4 that calls this P4 once for any given element and remembers the value for subsequent calls.
    */
   public final P4<A, B, C, D> memo() {
+      P4<A, B, C, D> self = this;
     return new P4<A, B, C, D>() {
-      private final P1<A> a = _1_().memo();
-      private final P1<B> b = _2_().memo();
-      private final P1<C> c = _3_().memo();
-      private final P1<D> d = _4_().memo();
+      private final P1<A> a = weakMemo(self::_1);
+      private final P1<B> b = weakMemo(self::_2);
+      private final P1<C> c = weakMemo(self::_3);
+      private final P1<D> d = weakMemo(self::_4);
 
       public A _1() {
         return a._1();
@@ -211,11 +214,7 @@ public abstract class P4<A, B, C, D> {
    * @return A function that returns the first element of a product.
    */
   public static <A, B, C, D> F<P4<A, B, C, D>, A> __1() {
-    return new F<P4<A, B, C, D>, A>() {
-      public A f(final P4<A, B, C, D> p) {
-        return p._1();
-      }
-    };
+    return P4::_1;
   }
 
   /**
@@ -224,11 +223,7 @@ public abstract class P4<A, B, C, D> {
    * @return A function that returns the second element of a product.
    */
   public static <A, B, C, D> F<P4<A, B, C, D>, B> __2() {
-    return new F<P4<A, B, C, D>, B>() {
-      public B f(final P4<A, B, C, D> p) {
-        return p._2();
-      }
-    };
+    return P4::_2;
   }
 
   /**
@@ -237,11 +232,7 @@ public abstract class P4<A, B, C, D> {
    * @return A function that returns the third element of a product.
    */
   public static <A, B, C, D> F<P4<A, B, C, D>, C> __3() {
-    return new F<P4<A, B, C, D>, C>() {
-      public C f(final P4<A, B, C, D> p) {
-        return p._3();
-      }
-    };
+    return P4::_3;
   }
 
   /**
@@ -250,10 +241,23 @@ public abstract class P4<A, B, C, D> {
    * @return A function that returns the fourth element of a product.
    */
   public static <A, B, C, D> F<P4<A, B, C, D>, D> __4() {
-    return new F<P4<A, B, C, D>, D>() {
-      public D f(final P4<A, B, C, D> p) {
-        return p._4();
-      }
-    };
+    return P4::_4;
   }
+
+  @Override
+	public final String toString() {
+		return Show.p4Show(Show.<A>anyShow(), Show.<B>anyShow(), Show.<C>anyShow(), Show.<D>anyShow()).showS(this);
+	}
+
+  @Override
+  public final boolean equals(Object other) {
+    return Equal.equals0(P4.class, this, other,
+        () -> Equal.p4Equal(Equal.anyEqual(), Equal.anyEqual(), Equal.anyEqual(), Equal.anyEqual()));
+  }
+
+  @Override
+  public final int hashCode() {
+    return Hash.p4Hash(Hash.<A>anyHash(), Hash.<B>anyHash(), Hash.<C>anyHash(), Hash.<D>anyHash()).hash(this);
+  }
+
 }

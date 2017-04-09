@@ -1,28 +1,35 @@
 package fj.data;
 
-import fj.Effect;
+import fj.Equal;
 import fj.F;
+import fj.F0;
 import fj.F2;
+import fj.Hash;
 import fj.P;
-import fj.P1;
 import fj.P2;
+import fj.Show;
 import fj.Unit;
+import fj.function.Effect1;
 
-import static fj.Function.*;
+import java.util.AbstractCollection;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+
+import static fj.Function.constant;
+import static fj.Function.curry;
+import static fj.Function.identity;
 import static fj.P.p;
 import static fj.P.p2;
 import static fj.Unit.unit;
 import static fj.data.List.iterableList;
 import static fj.data.Option.none;
 import static fj.data.Option.some;
-
 import static java.lang.Math.min;
 import static java.lang.System.arraycopy;
-
-import java.util.AbstractCollection;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
 
 /**
  * Provides an interface to arrays.
@@ -56,6 +63,11 @@ public final class Array<A> implements Iterable<A> {
     return (A) a[index];
   }
 
+  @Override
+  public int hashCode() {
+    return Hash.arrayHash(Hash.<A>anyHash()).hash(this);
+  }
+
   /**
    * Sets the element at the given index to the given value.
    *
@@ -78,7 +90,7 @@ public final class Array<A> implements Iterable<A> {
   }
 
   public ImmutableProjection<A> immutable() {
-    return new ImmutableProjection<A>(this);
+    return new ImmutableProjection<>(this);
   }
 
   /**
@@ -119,6 +131,19 @@ public final class Array<A> implements Iterable<A> {
   }
 
   /**
+   * To be removed in future release:
+   * affectation of the result of this method to a non generic array
+   * will result in runtime error (ClassCastException).
+   *
+   * @deprecated As of release 4.6, use {@link #array(Class)}.
+   */
+  @SuppressWarnings("unchecked")
+  @Deprecated
+  public A[] toJavaArray() {
+    return (A[]) array();
+  }
+
+  /**
    * Returns an option projection of this array; <code>None</code> if empty, or the first element in
    * <code>Some</code>.
    *
@@ -126,7 +151,7 @@ public final class Array<A> implements Iterable<A> {
    */
   @SuppressWarnings("unchecked")
   public Option<A> toOption() {
-    return a.length == 0 ? Option.<A>none() : some((A) a[0]);
+    return a.length == 0 ? Option.none() : some((A) a[0]);
   }
 
   /**
@@ -137,8 +162,8 @@ public final class Array<A> implements Iterable<A> {
    * @return An either projection of this array.
    */
   @SuppressWarnings("unchecked")
-  public <X> Either<X, A> toEither(final P1<X> x) {
-    return a.length == 0 ? Either.<X, A>left(x._1()) : Either.<X, A>right((A) a[0]);
+  public <X> Either<X, A> toEither(final F0<X> x) {
+    return a.length == 0 ? Either.left(x.f()) : Either.right((A) a[0]);
   }
 
   /**
@@ -164,12 +189,14 @@ public final class Array<A> implements Iterable<A> {
    */
   @SuppressWarnings("unchecked")
   public Stream<A> toStream() {
-    return Stream.unfold(new F<Integer, Option<P2<A, Integer>>>() {
-      public Option<P2<A, Integer>> f(final Integer o) {
-        return a.length > o ? some(p((A) a[o], o + 1))
-            : Option.<P2<A, Integer>>none();
-      }
-    }, 0);
+    return Stream.unfold(o ->
+        a.length > o ? some(p((A) a[o], o + 1)) : Option.none(), 0
+    );
+  }
+
+  @Override
+  public String toString() {
+    return Show.arrayShow(Show.<A>anyShow()).showS(this);
   }
 
   /**
@@ -178,7 +205,7 @@ public final class Array<A> implements Iterable<A> {
    * @param f The function to map across this array.
    * @return A new array after the given function has been applied to each element.
    */
-  @SuppressWarnings({"unchecked"})
+  @SuppressWarnings("unchecked")
   public <B> Array<B> map(final F<A, B> f) {
     final Object[] bs = new Object[a.length];
 
@@ -186,7 +213,7 @@ public final class Array<A> implements Iterable<A> {
       bs[i] = f.f((A) a[i]);
     }
 
-    return new Array<B>(bs);
+    return new Array<>(bs);
   }
 
   /**
@@ -229,9 +256,9 @@ public final class Array<A> implements Iterable<A> {
    * @param f The side-effect to perform for the given element.
    */
   @SuppressWarnings("unchecked")
-  public void foreach(final Effect<A> f) {
+  public void foreachDoEffect(final Effect1<A> f) {
     for (final Object x : a) {
-      f.e((A) x);
+      f.f((A) x);
     }
   }
 
@@ -292,12 +319,150 @@ public final class Array<A> implements Iterable<A> {
   }
 
   /**
+   * Performs a fold left accummulating and returns an array of the intermediate results.
+   * This function runs in constant stack space.
+   *
+   * @param f The function to apply on each argument pair (initial value/previous result and next array element)
+   * @param b The beginning value to start the application from.
+   * @return The array containing all intermediate results of the left-fold reduction.
+   */
+  @SuppressWarnings("unchecked")
+  public <B> Array<B> scanLeft(final F<B, F<A, B>> f, final B b) {
+    final Object[] bs = new Object[a.length];
+    B x = b;
+    
+    for (int i = 0; i < a.length; i++) {
+      x = f.f(x).f((A) a[i]);
+      bs[i] = x;
+    }
+    
+    return new Array<>(bs);
+  }
+
+  /**
+   * Performs a left-fold accummulating and returns an array of the intermediate results.
+   * This function runs in constant stack space.
+   *
+   * @param f The function to apply on each argument pair (initial value/previous result and next array element)
+   * @param b The beginning value to start the application from.
+   * @return The array containing all intermediate results of the left-fold reduction.
+   */
+  public <B> Array<B> scanLeft(final F2<B, A, B> f, final B b) {
+    return scanLeft(curry(f), b);
+  }
+
+  /**
+   * Performs a left-fold accummulating using first array element as a starting value
+   * and returns an array of the intermediate results.
+   * It will fail for empty arrays.
+   * This function runs in constant stack space.
+   *
+   * @param f The function to apply on each argument pair (next array element and first array element/previous result)
+   * @return The array containing all intermediate results of the left-fold reduction.
+   */
+  @SuppressWarnings("unchecked")
+  public Array<A> scanLeft1(final F<A, F<A, A>> f) {
+    final Object[] bs = new Object[a.length];
+    A x = get(0);
+    bs[0] = x;
+
+    for (int i = 1; i < a.length; i++) {
+      x = f.f(x).f((A) a[i]);
+      bs[i] = x;
+    }
+
+    return new Array<>(bs);
+  }
+
+  /**
+   * Performs a left-fold accummulating using first array element as a starting value
+   * and returns an array of the intermediate results.
+   * It will fail for empty arrays.
+   * This function runs in constant stack space.
+   *
+   * @param f The function to apply on each argument pair (next array element and first array element/previous result)
+   * @return The array containing all intermediate results of the left-fold reduction.
+   */
+  public Array<A> scanLeft1(final F2<A, A, A> f) {
+    return scanLeft1(curry(f));
+  }
+
+  /**
+   * Performs a right-fold accummulating and returns an array of the intermediate results.
+   * This function runs in constant stack space.
+   *
+   * @param f The function to apply on each argument pair (previous array element and initial value/previous result)
+   * @param b The beginning value to start the application from.
+   * @return The array containing all intermediate results of the right-fold reduction.
+   */
+  @SuppressWarnings("unchecked")
+  public <B> Array<B> scanRight(final F<A, F<B, B>>f, final B b) {
+    final Object[] bs = new Object[a.length];
+    B x = b;
+
+    for (int i = a.length - 1; i >= 0; i--) {
+      x = f.f((A) a[i]).f(x);
+      bs[i] = x;
+    }
+
+    return new Array<>(bs);
+  }
+
+  /**
+   * Performs a right-fold accummulating and returns an array of the intermediate results.
+   * This function runs in constant stack space.
+   *
+   * @param f The function to apply on each argument pair (previous array element and initial value/previous result)
+   * @param b The beginning value to start the application from.
+   * @return The array containing all intermediate results of the right-fold reduction.
+   */
+  public <B> Array<B> scanRight(final F2<A, B, B> f, final B b) {
+    return scanRight(curry(f), b);
+  }
+
+  /**
+   * Performs a right-fold accummulating using last array element as a starting value
+   * and returns an array of the intermediate results.
+   * It will fail for empty arrays.
+   * This function runs in constant stack space.
+   *
+   * @param f The function to apply on each argument pair (previous array element and last array element/previous result)
+   * @return The array containing all intermediate results of the right-fold reduction.
+   */
+  @SuppressWarnings("unchecked")
+  public Array<A> scanRight1(final F<A, F<A, A>>f) {
+    final Object[] bs = new Object[a.length];
+    A x = get(length() - 1);
+    bs[length() - 1] = x;
+
+    for (int i = a.length - 2; i >= 0; i--) {
+      x = f.f((A) a[i]).f(x);
+      bs[i] = x;
+    }
+
+    return new Array<>(bs);
+  }
+
+  /**
+   * Performs a right-fold accummulating using last array element as a starting value
+   * and returns an array of the intermediate results.
+   * It will fail for empty arrays.
+   * This function runs in constant stack space.
+   *
+   * @param f The function to apply on each argument pair (previous array element and last array element/previous result)
+   * @return The array containing all intermediate results of the right-fold reduction.
+   */
+  public Array<A> scanRight1(final F2<A, A, A> f) {
+    return scanRight1(curry(f));
+  }
+
+  /**
    * Binds the given function across each element of this array with a final join.
    *
    * @param f The function to apply to each element of this array.
    * @return A new array after performing the map, then final join.
    */
-  @SuppressWarnings({"unchecked"})
+  @SuppressWarnings("unchecked")
   public <B> Array<B> bind(final F<A, Array<B>> f) {
     List<Array<B>> x = List.nil();
     int len = 0;
@@ -320,7 +485,7 @@ public final class Array<A> implements Iterable<A> {
       }
     });
 
-    return new Array<B>(bs);
+    return new Array<>(bs);
   }
 
   /**
@@ -365,15 +530,7 @@ public final class Array<A> implements Iterable<A> {
    * @return A new array after applying the given array of functions through this array.
    */
   public <B> Array<B> apply(final Array<F<A, B>> lf) {
-    return lf.bind(new F<F<A, B>, Array<B>>() {
-      public Array<B> f(final F<A, B> f) {
-        return map(new F<A, B>() {
-          public B f(final A a) {
-            return f.f(a);
-          }
-        });
-      }
-    });
+    return lf.bind(f -> map(f));
   }
 
   /**
@@ -388,7 +545,7 @@ public final class Array<A> implements Iterable<A> {
       x[a.length - 1 - i] = a[i];
     }
 
-    return new Array<A>(x);
+    return new Array<>(x);
   }
 
   /**
@@ -403,7 +560,7 @@ public final class Array<A> implements Iterable<A> {
     arraycopy(a, 0, x, 0, a.length);
     arraycopy(aas.a, 0, x, a.length, aas.a.length);
 
-    return new Array<A>(x);
+    return new Array<>(x);
   }
 
   /**
@@ -412,17 +569,18 @@ public final class Array<A> implements Iterable<A> {
    * @return An empty array.
    */
   public static <A> Array<A> empty() {
-    return new Array<A>(new Object[0]);
+    return new Array<>(new Object[0]);
   }
 
   /**
    * Constructs an array from the given elements.
    *
-   * @param a The elements to construct the array with.
+   * @param as The elements to construct the array with.
    * @return A new array of the given elements.
    */
-  public static <A> Array<A> array(final A... a) {
-    return new Array<A>(a);
+  @SafeVarargs
+  public static <A> Array<A> array(final A...as) {
+    return arrayArray(as);
   }
 
   /**
@@ -432,7 +590,7 @@ public final class Array<A> implements Iterable<A> {
    * @return A wrapped array.
    */
   static <A> Array<A> mkArray(final Object[] a) {
-    return new Array<A>(a);
+    return new Array<>(a);
   }
 
   /**
@@ -442,7 +600,7 @@ public final class Array<A> implements Iterable<A> {
    * @return An array with the given single element.
    */
   public static <A> Array<A> single(final A a) {
-    return new Array<A>(new Object[]{a});
+    return new Array<>(new Object[]{a});
   }
 
   /**
@@ -451,11 +609,7 @@ public final class Array<A> implements Iterable<A> {
    * @return A function that wraps a given array.
    */
   public static <A> F<A[], Array<A>> wrap() {
-    return new F<A[], Array<A>>() {
-      public Array<A> f(final A[] as) {
-        return array(as);
-      }
-    };
+    return Array::array;
   }
 
   /**
@@ -464,11 +618,7 @@ public final class Array<A> implements Iterable<A> {
    * @return A function that maps a given function across a given array.
    */
   public static <A, B> F<F<A, B>, F<Array<A>, Array<B>>> map() {
-    return curry(new F2<F<A, B>, Array<A>, Array<B>>() {
-      public Array<B> f(final F<A, B> abf, final Array<A> array) {
-        return array.map(abf);
-      }
-    });
+    return curry((abf, array) -> array.map(abf));
   }
 
   /**
@@ -488,11 +638,7 @@ public final class Array<A> implements Iterable<A> {
    * @return A function that joins a array of arrays using a bind operation.
    */
   public static <A> F<Array<Array<A>>, Array<A>> join() {
-    return new F<Array<Array<A>>, Array<A>>() {
-      public Array<A> f(final Array<Array<A>> as) {
-        return join(as);
-      }
-    };
+    return Array::join;
   }
 
   /**
@@ -529,6 +675,11 @@ public final class Array<A> implements Iterable<A> {
     return false;
   }
 
+  @Override
+  public boolean equals(Object o) {
+    return Equal.equals0(Array.class, this, o, () -> Equal.arrayEqual(Equal.anyEqual()));
+  }
+
   /**
    * Finds the first occurrence of an element that matches the given predicate or no value if no
    * elements match.
@@ -559,7 +710,7 @@ public final class Array<A> implements Iterable<A> {
     if (from >= to)
       return empty();
     else {
-      final Array<Integer> a = new Array<Integer>(new Integer[to - from]);
+      final Array<Integer> a = new Array<>(new Integer[to - from]);
 
       for (int i = from; i < to; i++)
         a.set(i - from, i);
@@ -579,7 +730,7 @@ public final class Array<A> implements Iterable<A> {
    */
   public <B, C> Array<C> zipWith(final Array<B> bs, final F<A, F<B, C>> f) {
     final int len = min(a.length, bs.length());
-    final Array<C> x = new Array<C>(new Object[len]);
+    final Array<C> x = new Array<>(new Object[len]);
 
     for (int i = 0; i < len; i++) {
       x.set(i, f.f(get(i)).f(bs.get(i)));
@@ -619,15 +770,7 @@ public final class Array<A> implements Iterable<A> {
    * @return A new array with the same length as this array.
    */
   public Array<P2<A, Integer>> zipIndex() {
-    return zipWith(range(0, length()), new F<A, F<Integer, P2<A, Integer>>>() {
-      public F<Integer, P2<A, Integer>> f(final A a) {
-        return new F<Integer, P2<A, Integer>>() {
-          public P2<A, Integer> f(final Integer i) {
-            return p(a, i);
-          }
-        };
-      }
-    });
+    return zipWith(range(0, length()), a -> i -> p(a, i));
   }
 
   /**
@@ -635,37 +778,25 @@ public final class Array<A> implements Iterable<A> {
    *
    * @return An immutable collection of this array.
    */
-  @SuppressWarnings("unchecked")
   public Collection<A> toCollection() {
-    return new AbstractCollection<A>() {
-      public Iterator<A> iterator() {
-        return new Iterator<A>() {
-          private int i;
+    return asJavaList();
+  }
 
-          public boolean hasNext() {
-            return i < a.length;
-          }
+  /**
+   * Projects an unmodifiable list view of this array.
+   *
+   * @return An unmodifiable list view of this array.
+   */
+  @SuppressWarnings("unchecked")
+  public java.util.List<A> asJavaList() {
+    return Collections.unmodifiableList(Arrays.asList((A[]) a));
+  }
 
-          public A next() {
-            if (i >= a.length)
-              throw new NoSuchElementException();
-            else {
-              final A aa = (A) a[i];
-              i++;
-              return aa;
-            }
-          }
-
-          public void remove() {
-            throw new UnsupportedOperationException();
-          }
-        };
-      }
-
-      public int size() {
-        return a.length;
-      }
-    };
+  /**
+   * Returns a java.util.ArrayList projection of this array.
+   */
+  public ArrayList<A> toJavaList() {
+    return new ArrayList<>(asJavaList());
   }
 
   /**
@@ -679,28 +810,46 @@ public final class Array<A> implements Iterable<A> {
   }
 
   /**
+   * Creates an Array from the iterator.
+   */
+  public static <A> Array<A> iteratorArray(final Iterator<A> i) {
+    return iterableArray(() -> i);
+  }
+
+  /**
+   * Returns a copy of the underlying primitive array.
+   * Equivalent to array(A...)
+   *
+   * @return A copy of the underlying primitive array.
+   */
+  @SafeVarargs
+  public static <A> Array<A> arrayArray(final A...as) {
+    return new Array<>(as);
+  }
+
+  /**
    * Transforms an array of pairs into an array of first components and an array of second components.
    *
    * @param xs The array of pairs to transform.
    * @return An array of first components and an array of second components.
    */
-  @SuppressWarnings({"unchecked"})
+  @SuppressWarnings("unchecked")
   public static <A, B> P2<Array<A>, Array<B>> unzip(final Array<P2<A, B>> xs) {
     final int len = xs.length();
-    final Array<A> aa = new Array<A>(new Object[len]);
-    final Array<B> ab = new Array<B>(new Object[len]);
+    final Array<A> aa = new Array<>(new Object[len]);
+    final Array<B> ab = new Array<>(new Object[len]);
     for (int i = len - 1; i >= 0; i--) {
       final P2<A, B> p = xs.get(i);
       aa.set(i, p._1());
       ab.set(i, p._2());
     }
-    return P.p(aa, ab);
+    return p(aa, ab);
   }
 
   /**
    * Projects an array by providing only operations which do not mutate.
    */
-  public final class ImmutableProjection<A> implements Iterable<A> {
+  public static final class ImmutableProjection<A> implements Iterable<A> {
     private final Array<A> a;
 
     private ImmutableProjection(final Array<A> a) {
@@ -770,7 +919,7 @@ public final class Array<A> implements Iterable<A> {
      * @param x The value to return in left if this array is empty.
      * @return An either projection of this array.
      */
-    public <X> Either<X, A> toEither(final P1<X> x) {
+    public <X> Either<X, A> toEither(final F0<X> x) {
       return a.toEither(x);
     }
 
@@ -909,12 +1058,12 @@ public final class Array<A> implements Iterable<A> {
     final T[] copy = (Object)newType == Object[].class
         ? (T[]) new Object[len]
         : (T[]) java.lang.reflect.Array.newInstance(newType.getComponentType(), len);
-    System.arraycopy(a, 0, copy, 0,
-        Math.min(a.length, len));
+    arraycopy(a, 0, copy, 0,
+        min(a.length, len));
     return copy;
   }
 
-  @SuppressWarnings({"unchecked"})
+  @SuppressWarnings("unchecked")
   public static <T> T[] copyOf(final T[] a, final int len) {
       return (T[]) copyOf(a, len, a.getClass());
   }
@@ -924,8 +1073,8 @@ public final class Array<A> implements Iterable<A> {
       if (len < 0)
           throw new IllegalArgumentException(from + " > " + to);
       final char[] copy = new char[len];
-      System.arraycopy(a, from, copy, 0,
-                       Math.min(a.length - from, len));
+      arraycopy(a, from, copy, 0,
+                       min(a.length - from, len));
       return copy;
   }
 }

@@ -1,19 +1,13 @@
 package fj.data;
 
-import fj.F;
-import fj.F2;
-import fj.Function;
-import fj.Monoid;
-import fj.Ord;
-import fj.P;
-import fj.P2;
-import fj.P3;
+import fj.*;
+
 import static fj.Function.*;
 import static fj.data.Either.right;
+import static fj.data.Option.none;
 import static fj.data.Option.some;
 import static fj.function.Booleans.not;
 
-import fj.Ordering;
 import static fj.Ordering.GT;
 import static fj.Ordering.LT;
 
@@ -37,7 +31,7 @@ public abstract class Set<A> implements Iterable<A> {
     return this instanceof Empty;
   }
 
-  @SuppressWarnings({"ClassEscapesDefinedScope"})
+  @SuppressWarnings("ClassEscapesDefinedScope")
   abstract Color color();
 
   abstract Set<A> l();
@@ -121,32 +115,20 @@ public abstract class Set<A> implements Iterable<A> {
   public final P2<Boolean, Set<A>> update(final A a, final F<A, A> f) {
     return isEmpty()
            ? P.p(false, this)
-           : tryUpdate(a, f).either(new F<A, P2<Boolean, Set<A>>>() {
-             public P2<Boolean, Set<A>> f(final A a2) {
-               return P.p(true, delete(a).insert(a2));
-             }
-           }, Function.<P2<Boolean, Set<A>>>identity());
+           : tryUpdate(a, f).either(a2 -> P.p(true, delete(a).insert(a2)), Function.identity());
   }
 
   private Either<A, P2<Boolean, Set<A>>> tryUpdate(final A a, final F<A, A> f) {
     if (isEmpty())
       return right(P.p(false, this));
     else if (ord.isLessThan(a, head()))
-      return l().tryUpdate(a, f).right().map(new F<P2<Boolean, Set<A>>, P2<Boolean, Set<A>>>() {
-        public P2<Boolean, Set<A>> f(final P2<Boolean, Set<A>> set) {
-          return set._1() ? P.p(true, (Set<A>) new Tree<A>(ord, color(), set._2(), head(), r())) : set;
-        }
-      });
+      return l().tryUpdate(a, f).right().map(set -> set._1() ? P.p(true, (Set<A>) new Tree<>(ord, color(), set._2(), head(), r())) : set);
     else if (ord.eq(a, head())) {
       final A h = f.f(head());
       return ord.eq(head(), h) ? Either
-          .<A, P2<Boolean, Set<A>>>right(P.p(true, (Set<A>) new Tree<A>(ord, color(), l(), h, r())))
-                               : Either.<A, P2<Boolean, Set<A>>>left(h);
-    } else return r().tryUpdate(a, f).right().map(new F<P2<Boolean, Set<A>>, P2<Boolean, Set<A>>>() {
-      public P2<Boolean, Set<A>> f(final P2<Boolean, Set<A>> set) {
-        return set._1() ? P.p(true, (Set<A>) new Tree<A>(ord, color(), l(), head(), set._2())) : set;
-      }
-    });
+          .right(P.p(true, (Set<A>) new Tree<>(ord, color(), l(), h, r())))
+                               : Either.left(h);
+    } else return r().tryUpdate(a, f).right().map(set -> set._1() ? P.p(true, (Set<A>) new Tree<>(ord, color(), l(), head(), set._2())) : set);
   }
 
   /**
@@ -156,7 +138,22 @@ public abstract class Set<A> implements Iterable<A> {
    * @return the empty set.
    */
   public static <A> Set<A> empty(final Ord<A> ord) {
-    return new Empty<A>(ord);
+    return new Empty<>(ord);
+  }
+
+  @Override
+  public final boolean equals(Object other) {
+    return Equal.equals0(Set.class, this, other, () -> Equal.setEqual(Equal.anyEqual()));
+  }
+
+  @Override
+  public final int hashCode() {
+    return Hash.setHash(Hash.<A>anyHash()).hash(this);
+  }
+
+  @Override
+  public final String toString() {
+    return Show.setShow(Show.<A>anyShow()).showS(this);
   }
 
   /**
@@ -166,7 +163,7 @@ public abstract class Set<A> implements Iterable<A> {
    * @return true if the given element is a member of this set.
    */
   public final boolean member(final A x) {
-    return !isEmpty() && (ord.isLessThan(x, head()) && l().member(x) || ord.eq(head(), x) || r().member(x));
+    return !isEmpty() && (ord.isLessThan(x, head()) ? l().member(x) : ord.eq(head(), x) || r().member(x));
   }
 
 
@@ -176,11 +173,7 @@ public abstract class Set<A> implements Iterable<A> {
    * @return A function that returns true if the given element if a member of the given set.
    */
   public static <A> F<Set<A>, F<A, Boolean>> member() {
-    return curry(new F2<Set<A>, A, Boolean>() {
-      public Boolean f(final Set<A> s, final A a) {
-        return s.member(a);
-      }
-    });
+    return curry(Set::member);
   }
 
   /**
@@ -199,37 +192,33 @@ public abstract class Set<A> implements Iterable<A> {
    * @return A function that inserts a given element into a given set.
    */
   public static <A> F<A, F<Set<A>, Set<A>>> insert() {
-    return curry(new F2<A, Set<A>, Set<A>>() {
-      public Set<A> f(final A a, final Set<A> set) {
-        return set.insert(a);
-      }
-    });
+    return curry((a, set) -> set.insert(a));
   }
 
   private Set<A> ins(final A x) {
     return isEmpty()
-           ? new Tree<A>(ord, Color.R, empty(ord), x, empty(ord))
+           ? new Tree<>(ord, Color.R, empty(ord), x, empty(ord))
            : ord.isLessThan(x, head())
              ? balance(ord, color(), l().ins(x), head(), r())
              : ord.eq(x, head())
-               ? new Tree<A>(ord, color(), l(), x, r())
+               ? new Tree<>(ord, color(), l(), x, r())
                : balance(ord, color(), l(), head(), r().ins(x));
   }
 
   private Set<A> makeBlack() {
-    return new Tree<A>(ord, Color.B, l(), head(), r());
+    return new Tree<>(ord, Color.B, l(), head(), r());
   }
 
-  @SuppressWarnings({"SuspiciousNameCombination"})
+  @SuppressWarnings("SuspiciousNameCombination")
   private static <A> Tree<A> tr(final Ord<A> o,
                                 final Set<A> a, final A x, final Set<A> b,
                                 final A y,
                                 final Set<A> c, final A z, final Set<A> d) {
-    return new Tree<A>(o, Color.R, new Tree<A>(o, Color.B, a, x, b), y, new Tree<A>(o, Color.B, c, z, d));
+    return new Tree<>(o, Color.R, new Tree<>(o, Color.B, a, x, b), y, new Tree<>(o, Color.B, c, z, d));
   }
 
   private static <A> Set<A> balance(final Ord<A> ord, final Color c, final Set<A> l, final A h, final Set<A> r) {
-    return c == Color.B && l.isTR() && l.l().isTR() ? tr(ord, l.l().l(), l.l().head(), l.l().r(), l.head(), l.r(), h, r) : c == Color.B && l.isTR() && l.r().isTR() ? tr(ord, l.l(), l.head(), l.r().l(), l.r().head(), l.r().r(), h, r) : c == Color.B && r.isTR() && r.l().isTR() ? tr(ord, l, h, r.l().l(), r.l().head(), r.l().r(), r.head(), r.r()) : c == Color.B && r.isTR() && r.r().isTR() ? tr(ord, l, h, r.l(), r.head(), r.r().l(), r.r().head(), r.r().r()) : new Tree<A>(ord, c, l, h, r);
+    return c == Color.B && l.isTR() && l.l().isTR() ? tr(ord, l.l().l(), l.l().head(), l.l().r(), l.head(), l.r(), h, r) : c == Color.B && l.isTR() && l.r().isTR() ? tr(ord, l.l(), l.head(), l.r().l(), l.r().head(), l.r().r(), h, r) : c == Color.B && r.isTR() && r.l().isTR() ? tr(ord, l, h, r.l().l(), r.l().head(), r.l().r(), r.head(), r.r()) : c == Color.B && r.isTR() && r.r().isTR() ? tr(ord, l, h, r.l(), r.head(), r.r().l(), r.r().head(), r.r().r()) : new Tree<>(ord, c, l, h, r);
   }
 
   private boolean isTR() {
@@ -277,8 +266,21 @@ public abstract class Set<A> implements Iterable<A> {
   public final <B> B foldMap(final F<A, B> f, final Monoid<B> m) {
     return isEmpty() ?
            m.zero() :
-           m.sum(m.sum(r().foldMap(f, m), f.f(head())), l().foldMap(f, m));
+           m.sum(m.sum(l().foldMap(f, m), f.f(head())), r().foldMap(f, m));
   }
+
+    /**
+     * Folds this Set from the right using the given monoid.
+     *
+     * @param f A transformation from this Set's elements, to the monoid.
+     * @param m The monoid to fold this Set with.
+     * @return The result of folding the Set from the right with the given monoid.
+     */
+    public final <B> B foldMapRight(final F<A, B> f, final Monoid<B> m) {
+        return isEmpty() ?
+                m.zero() :
+                m.sum(m.sum(r().foldMapRight(f, m), f.f(head())), l().foldMapRight(f, m));
+    }
 
   /**
    * Returns a list representation of this set.
@@ -286,19 +288,85 @@ public abstract class Set<A> implements Iterable<A> {
    * @return a list representation of this set.
    */
   public final List<A> toList() {
-    return foldMap(List.cons(List.<A>nil()), Monoid.<A>listMonoid());
+    return foldMap(List.cons(List.nil()), Monoid.listMonoid());
   }
+
+  /**
+   * Returns a java.util.Set representation of this set.
+   *
+   * @return a java.util.Set representation of this set.
+   */
+  public final java.util.Set<A> toJavaSet() {
+    return toJavaHashSet();
+  }
+
+  /**
+   * Returns a java.util.HashSet representation of this set.
+   *
+   * @return a java.util.HashSet representation of this set.
+   */
+  public final java.util.HashSet<A> toJavaHashSet() {
+    return new java.util.HashSet<>(toStream().toCollection());
+  }
+
+  /**
+   * Returns a java.util.TreeSet representation of this set.
+   *
+   * @return a java.util.TreeSet representation of this set.
+   */
+  public final java.util.TreeSet<A> toJavaTreeSet() {
+    return new java.util.TreeSet<>(toStream().toCollection());
+  }
+
+  /**
+   * Returns a java.util.List representation of this set.
+   *
+   * @return a java.util.List representation of this set.
+   */
+  public final java.util.List<A> toJavaList() {
+    return new java.util.ArrayList<>(toStream().toCollection());
+  }
+
+  /**
+     * Returns a list representation of this set in reverse order.
+     *
+     * @return a list representation of this set in reverse order.
+     */
+    public final List<A> toListReverse() {
+        return foldMapRight(List.cons(List.nil()), Monoid.listMonoid());
+    }
 
   /**
    * Returns a stream representation of this set.
    *
    * @return a stream representation of this set.
    */
-  public final Stream<A> toStream() {
-    return foldMap(Stream.<A>single(), Monoid.<A>streamMonoid());
-  }
+    public final Stream<A> toStream() {
+        if (isEmpty()) {
+            return Stream.nil();
+        } else if (l().isEmpty()) {
+            return Stream.cons(head(), () -> r().toStream());
+        } else {
+            return l().toStream().append(Stream.cons(head(), () -> r().toStream()));
+        }
+    }
 
-  /**
+    /**
+     * Returns a stream representation of this set in reverse order.
+     *
+     * @return a stream representation of this set in reverse order.
+     */
+    public final Stream<A> toStreamReverse() {
+        if (isEmpty()) {
+            return Stream.nil();
+        } else if (r().isEmpty()) {
+            return Stream.cons(head(), () -> l().toStreamReverse());
+        } else {
+            return r().toStreamReverse().append(Stream.cons(head(), () -> l().toStreamReverse()));
+        }
+    }
+
+    /**
    * Binds the given function across this set.
    *
    * @param o An order for the elements of the target set.
@@ -326,11 +394,7 @@ public abstract class Set<A> implements Iterable<A> {
    * @see #union(Set)
    */
   public static <A> F<Set<A>, F<Set<A>, Set<A>>> union() {
-    return curry(new F2<Set<A>, Set<A>, Set<A>>() {
-      public Set<A> f(final Set<A> s1, final Set<A> s2) {
-        return s1.union(s2);
-      }
-    });
+    return curry(Set::union);
   }
 
   /**
@@ -360,11 +424,7 @@ public abstract class Set<A> implements Iterable<A> {
    * @return A function that deletes a given element from a given set.
    */
   public final F<A, F<Set<A>, Set<A>>> delete() {
-    return curry(new F2<A, Set<A>, Set<A>>() {
-      public Set<A> f(final A a, final Set<A> set) {
-        return set.delete(a);
-      }
-    });
+    return curry((a, set) -> set.delete(a));
   }
 
   /**
@@ -384,11 +444,7 @@ public abstract class Set<A> implements Iterable<A> {
    * @see #intersect(Set)
    */
   public static <A> F<Set<A>, F<Set<A>, Set<A>>> intersect() {
-    return curry(new F2<Set<A>, Set<A>, Set<A>>() {
-      public Set<A> f(final Set<A> s1, final Set<A> s2) {
-        return s1.intersect(s2);
-      }
-    });
+    return curry(Set::intersect);
   }
 
   /**
@@ -408,12 +464,16 @@ public abstract class Set<A> implements Iterable<A> {
    * @see #minus(Set)
    */
   public static <A> F<Set<A>, F<Set<A>, Set<A>>> minus() {
-    return curry(new F2<Set<A>, Set<A>, Set<A>>() {
-      public Set<A> f(final Set<A> s1, final Set<A> s2) {
-        return s1.minus(s2);
-      }
-    });
+    return curry(Set::minus);
   }
+
+    public final Option<A> min() {
+        return isEmpty() ? none() : l().min().orElse(some(head()));
+    }
+
+    public final Option<A> max() {
+        return isEmpty() ? none() : r().max().orElse(some(head()));
+    }
 
   /**
    * Returns the size of this set.
@@ -440,7 +500,7 @@ public abstract class Set<A> implements Iterable<A> {
    */
   public final P3<Set<A>, Option<A>, Set<A>> split(final A a) {
     if (isEmpty())
-      return P.p(empty(ord), Option.<A>none(), empty(ord));
+      return P.p(empty(ord), Option.none(), empty(ord));
     else {
       final A h = head();
       final Ordering i = ord.compare(a, h);
@@ -453,6 +513,129 @@ public abstract class Set<A> implements Iterable<A> {
       } else
         return P.p(l(), some(h), r());
     }
+  }
+
+  /**
+   * Find element equal to the given one.
+   *
+   * @param a An element to compare with.
+   * @return Some element in this set equal to the given one, or None.
+   */
+  public final Option<A> lookup(final A a) {
+    Set<A> s = this;
+    while (true)
+      if (s.isEmpty())
+        return none();
+      else {
+        final A h = s.head();
+        final Ordering i = ord.compare(a, h);
+        if (i == LT)
+          s = s.l();
+        else if (i == GT)
+          s = s.r();
+        else
+          return some(h);
+      }
+  }
+
+  /**
+   * Find largest element smaller than the given one.
+   *
+   * @param a An element to compare with.
+   * @return Some largest element in this set smaller than the given one, or None.
+   */
+  public final Option<A> lookupLT(final A a) {
+    Set<A> s = this;
+    Option<A> r = none();
+    while (true)
+      if (s.isEmpty())
+        return r;
+      else {
+        final A h = s.head();
+        final Ordering i = ord.compare(a, h);
+        if (i == GT) {
+          r = some(h);
+          s = s.r();
+        }
+        else
+          s = s.l();
+      }
+  }
+
+  /**
+   * Find smallest element greater than the given one.
+   *
+   * @param a An element to compare with.
+   * @return Some smallest element in this set greater than the given one, or None.
+   */
+  public final Option<A> lookupGT(final A a) {
+    Set<A> s = this;
+    Option<A> r = none();
+    while (true)
+      if (s.isEmpty())
+        return r;
+      else {
+        final A h = s.head();
+        final Ordering i = ord.compare(a, h);
+        if (i == LT) {
+          r = some(h);
+          s = s.l();
+        }
+        else
+          s = s.r();
+      }
+  }
+
+  /**
+   * Find largest element smaller or equal to the given one.
+   *
+   * @param a An element to compare with.
+   * @return Some largest element in this set smaller or equal to the given one, or None.
+   */
+  public final Option<A> lookupLE(final A a) {
+    Set<A> s = this;
+    Option<A> r = none();
+    while (true)
+      if (s.isEmpty())
+        return r;
+      else {
+        final A h = s.head();
+        final Ordering i = ord.compare(a, h);
+        if (i == LT)
+          s = s.l();
+        else if (i == GT) {
+          r = some(h);
+          s = s.r();
+        }
+        else
+          return some(h);
+      }
+  }
+
+  /**
+   * Find smallest element greater or equal to the given one.
+   *
+   * @param a An element to compare with.
+   * @return Some smallest element in this set greater or equal to the given one, or None.
+   */
+  public final Option<A> lookupGE(final A a) {
+    Set<A> s = this;
+    Option<A> r = none();
+    while (true)
+      if (s.isEmpty())
+        return r;
+      else {
+        final A h = s.head();
+        final Ordering i = ord.compare(a, h);
+        if (i == LT) {
+          r = some(h);
+          s = s.l();
+        }
+        else if (i == GT)
+          s = s.r();
+        else
+          return some(h);
+      }
   }
 
   /**
@@ -479,7 +662,7 @@ public abstract class Set<A> implements Iterable<A> {
    */
   public static <A> Set<A> join(final Ord<A> o, final Set<Set<A>> s) {
     final F<Set<A>, Set<A>> id = identity();
-    return s.foldMap(id, Monoid.<A>setMonoid(o));
+    return s.foldMap(id, Monoid.setMonoid(o));
   }
 
   /**
@@ -497,17 +680,61 @@ public abstract class Set<A> implements Iterable<A> {
   }
 
   /**
+   * Return the elements of the given iterator as a set.
+   *
+   * @param o  An order for the elements of the new set.
+   * @param as An iterator of elements to add to a set.
+   * @return A new set containing the elements of the given iterator.
+   */
+  public static <A> Set<A> iteratorSet(final Ord<A> o, final Iterator<A> as) {
+    return iterableSet(o, () -> as);
+  }
+
+  /**
+   * Return the elements of the given iterator as a set.
+   *
+   * @param o  An order for the elements of the new set.
+   * @param as An iterator of elements to add to a set.
+   * @return A new set containing the elements of the given iterator.
+   */
+  @SafeVarargs
+  public static <A> Set<A> arraySet(final Ord<A> o, final A...as) {
+    return iterableSet(o, Array.array(as));
+  }
+
+  /**
    * Constructs a set from the given elements.
    *
    * @param o  An order for the elements of the new set.
    * @param as The elements to add to a set.
    * @return A new set containing the elements of the given iterable.
    */
-  public static <A> Set<A> set(final Ord<A> o, final A ... as) {
-    Set<A> s = empty(o);
-    for (final A a : as)
-      s = s.insert(a);
-    return s;
+  @SafeVarargs public static <A> Set<A> set(final Ord<A> o, final A ... as) {
+    return arraySet(o, as);
+  }
+
+  /**
+   * Constructs a set from the list.
+   *
+   * @deprecated As of release 4.5, use {@link #iterableSet}
+   *
+   * @param o  An order for the elements of the new set.
+   * @param list The elements to add to a set.
+   * @return A new set containing the elements of the given list.
+   */
+  @Deprecated
+  public static <A> Set<A> set(final Ord<A> o, List<A> list) {
+    return iterableSet(o, list);
+  }
+
+  /**
+   * Constructs a set from the list.
+   *
+   * @deprecated As of release 4.5, use {@link #iterableSet}
+   */
+  @Deprecated
+  public static <A> Set<A> fromList(final Ord<A> o, List<A> list) {
+    return iterableSet(o, list);
   }
 
 }

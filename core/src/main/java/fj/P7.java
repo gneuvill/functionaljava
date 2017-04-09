@@ -1,11 +1,13 @@
 package fj;
 
+import static fj.P.weakMemo;
+
 /**
  * A product-7.
  *
  * @version %build.number%
  */
-@SuppressWarnings({"UnnecessaryFullyQualifiedName"})
+@SuppressWarnings("UnnecessaryFullyQualifiedName")
 public abstract class P7<A, B, C, D, E, F, G> {
   /**
    * Access the first element of the product.
@@ -328,7 +330,7 @@ public abstract class P7<A, B, C, D, E, F, G> {
    * @return the 1-product projection over the first element.
    */
   public final P1<A> _1_() {
-    return P7.<A, B, C, D, E, F, G>__1().lazy().f(this);
+    return F1Functions.lazy(P7.<A, B, C, D, E, F, G>__1()).f(this);
   }
 
   /**
@@ -337,7 +339,7 @@ public abstract class P7<A, B, C, D, E, F, G> {
    * @return the 1-product projection over the second element.
    */
   public final P1<B> _2_() {
-    return P7.<A, B, C, D, E, F, G>__2().lazy().f(this);
+    return F1Functions.lazy(P7.<A, B, C, D, E, F, G>__2()).f(this);
   }
 
   /**
@@ -346,7 +348,7 @@ public abstract class P7<A, B, C, D, E, F, G> {
    * @return the 1-product projection over the third element.
    */
   public final P1<C> _3_() {
-    return P7.<A, B, C, D, E, F, G>__3().lazy().f(this);
+    return F1Functions.lazy(P7.<A, B, C, D, E, F, G>__3()).f(this);
   }
 
   /**
@@ -355,7 +357,7 @@ public abstract class P7<A, B, C, D, E, F, G> {
    * @return the 1-product projection over the fourth element.
    */
   public final P1<D> _4_() {
-    return P7.<A, B, C, D, E, F, G>__4().lazy().f(this);
+    return F1Functions.lazy(P7.<A, B, C, D, E, F, G>__4()).f(this);
   }
 
   /**
@@ -364,7 +366,7 @@ public abstract class P7<A, B, C, D, E, F, G> {
    * @return the 1-product projection over the fifth element.
    */
   public final P1<E> _5_() {
-    return P7.<A, B, C, D, E, F, G>__5().lazy().f(this);
+    return F1Functions.lazy(P7.<A, B, C, D, E, F, G>__5()).f(this);
   }
 
   /**
@@ -373,7 +375,7 @@ public abstract class P7<A, B, C, D, E, F, G> {
    * @return the 1-product projection over the sixth element.
    */
   public final P1<F> _6_() {
-    return P7.<A, B, C, D, E, F, G>__6().lazy().f(this);
+    return F1Functions.lazy(P7.<A, B, C, D, E, F, G>__6()).f(this);
   }
 
   /**
@@ -382,7 +384,7 @@ public abstract class P7<A, B, C, D, E, F, G> {
    * @return the 1-product projection over the seventh element.
    */
   public final P1<G> _7_() {
-    return P7.<A, B, C, D, E, F, G>__7().lazy().f(this);
+    return F1Functions.lazy(P7.<A, B, C, D, E, F, G>__7()).f(this);
   }
 
   /**
@@ -391,14 +393,15 @@ public abstract class P7<A, B, C, D, E, F, G> {
    * @return A P7 that calls this P7 once for any given element and remembers the value for subsequent calls.
    */
   public final P7<A, B, C, D, E, F, G> memo() {
+      P7<A, B, C, D, E, F, G> self = this;
     return new P7<A, B, C, D, E, F, G>() {
-      private final P1<A> a = _1_().memo();
-      private final P1<B> b = _2_().memo();
-      private final P1<C> c = _3_().memo();
-      private final P1<D> d = _4_().memo();
-      private final P1<E> e = _5_().memo();
-      private final P1<F> f = _6_().memo();
-      private final P1<G> g = _7_().memo();
+      private final P1<A> a = weakMemo(self::_1);
+      private final P1<B> b = weakMemo(self::_2);
+      private final P1<C> c = weakMemo(self::_3);
+      private final P1<D> d = weakMemo(self::_4);
+      private final P1<E> e = weakMemo(self::_5);
+      private final P1<F> f = weakMemo(self::_6);
+      private final P1<G> g = weakMemo(self::_7);
 
       public A _1() {
         return a._1();
@@ -436,11 +439,7 @@ public abstract class P7<A, B, C, D, E, F, G> {
    * @return A function that returns the first element of a product.
    */
   public static <A, B, C, D, E, F$, G> fj.F<P7<A, B, C, D, E, F$, G>, A> __1() {
-    return new fj.F<P7<A, B, C, D, E, F$, G>, A>() {
-      public A f(final P7<A, B, C, D, E, F$, G> p) {
-        return p._1();
-      }
-    };
+    return P7::_1;
   }
 
   /**
@@ -449,11 +448,7 @@ public abstract class P7<A, B, C, D, E, F, G> {
    * @return A function that returns the second element of a product.
    */
   public static <A, B, C, D, E, F$, G> fj.F<P7<A, B, C, D, E, F$, G>, B> __2() {
-    return new fj.F<P7<A, B, C, D, E, F$, G>, B>() {
-      public B f(final P7<A, B, C, D, E, F$, G> p) {
-        return p._2();
-      }
-    };
+    return P7::_2;
   }
 
   /**
@@ -462,11 +457,7 @@ public abstract class P7<A, B, C, D, E, F, G> {
    * @return A function that returns the third element of a product.
    */
   public static <A, B, C, D, E, F$, G> fj.F<P7<A, B, C, D, E, F$, G>, C> __3() {
-    return new fj.F<P7<A, B, C, D, E, F$, G>, C>() {
-      public C f(final P7<A, B, C, D, E, F$, G> p) {
-        return p._3();
-      }
-    };
+    return P7::_3;
   }
 
   /**
@@ -475,11 +466,7 @@ public abstract class P7<A, B, C, D, E, F, G> {
    * @return A function that returns the fourth element of a product.
    */
   public static <A, B, C, D, E, F$, G> fj.F<P7<A, B, C, D, E, F$, G>, D> __4() {
-    return new fj.F<P7<A, B, C, D, E, F$, G>, D>() {
-      public D f(final P7<A, B, C, D, E, F$, G> p) {
-        return p._4();
-      }
-    };
+    return P7::_4;
   }
 
   /**
@@ -488,11 +475,7 @@ public abstract class P7<A, B, C, D, E, F, G> {
    * @return A function that returns the fifth element of a product.
    */
   public static <A, B, C, D, E, F$, G> fj.F<P7<A, B, C, D, E, F$, G>, E> __5() {
-    return new fj.F<P7<A, B, C, D, E, F$, G>, E>() {
-      public E f(final P7<A, B, C, D, E, F$, G> p) {
-        return p._5();
-      }
-    };
+    return P7::_5;
   }
 
   /**
@@ -501,11 +484,7 @@ public abstract class P7<A, B, C, D, E, F, G> {
    * @return A function that returns the sixth element of a product.
    */
   public static <A, B, C, D, E, F$, G> fj.F<P7<A, B, C, D, E, F$, G>, F$> __6() {
-    return new fj.F<P7<A, B, C, D, E, F$, G>, F$>() {
-      public F$ f(final P7<A, B, C, D, E, F$, G> p) {
-        return p._6();
-      }
-    };
+    return P7::_6;
   }
 
   /**
@@ -514,10 +493,23 @@ public abstract class P7<A, B, C, D, E, F, G> {
    * @return A function that returns the seventh element of a product.
    */
   public static <A, B, C, D, E, F$, G> fj.F<P7<A, B, C, D, E, F$, G>, G> __7() {
-    return new fj.F<P7<A, B, C, D, E, F$, G>, G>() {
-      public G f(final P7<A, B, C, D, E, F$, G> p) {
-        return p._7();
-      }
-    };
+    return P7::_7;
   }
+
+  @Override
+	public final String toString() {
+		return Show.p7Show(Show.<A>anyShow(), Show.<B>anyShow(), Show.<C>anyShow(), Show.<D>anyShow(), Show.<E>anyShow(), Show.<F>anyShow(), Show.<G>anyShow()).showS(this);
+	}
+
+  @Override
+  public final boolean equals(Object other) {
+    return Equal.equals0(P7.class, this, other,
+        () -> Equal.p7Equal(Equal.anyEqual(), Equal.anyEqual(), Equal.anyEqual(), Equal.anyEqual(), Equal.anyEqual(), Equal.anyEqual(), Equal.anyEqual()));
+  }
+
+  @Override
+  public final int hashCode() {
+    return Hash.p7Hash(Hash.<A>anyHash(), Hash.<B>anyHash(), Hash.<C>anyHash(), Hash.<D>anyHash(), Hash.<E>anyHash(), Hash.<F>anyHash(), Hash.<G>anyHash()).hash(this);
+  }
+
 }

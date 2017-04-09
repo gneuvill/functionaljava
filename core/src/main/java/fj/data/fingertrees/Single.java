@@ -1,8 +1,14 @@
 package fj.data.fingertrees;
 
 import fj.F;
+import fj.P;
 import fj.P2;
+import fj.P3;
+import fj.Show;
+import fj.data.Stream;
+
 import static fj.P.p;
+import static fj.Show.anyShow;
 
 /**
  * A tree with a single element.
@@ -34,7 +40,7 @@ public final class Single<V, A> extends FingerTree<V, A> {
   }
 
   @Override public <B> FingerTree<V, B> map(final F<A, B> abf, final Measured<V, B> m) {
-    return new Single<V, B>(m, abf.f(a));
+    return new Single<>(m, abf.f(a));
   }
 
   /**
@@ -56,23 +62,39 @@ public final class Single<V, A> extends FingerTree<V, A> {
 
   @Override public FingerTree<V, A> cons(final A b) {
     final MakeTree<V, A> mk = mkTree(measured());
-    return mk.deep(mk.one(b), new Empty<V, Node<V, A>>(measured().nodeMeasured()), mk.one(a));
+    return mk.deep(mk.one(b), new Empty<>(measured().nodeMeasured()), mk.one(a));
   }
 
   @Override public FingerTree<V, A> snoc(final A b) {
     final MakeTree<V, A> mk = mkTree(measured());
-    return mk.deep(mk.one(a), new Empty<V, Node<V, A>>(measured().nodeMeasured()), mk.one(b));
+    return mk.deep(mk.one(a), new Empty<>(measured().nodeMeasured()), mk.one(b));
   }
+
+  @Override public A head() { return a; }
+
+  @Override public A last() { return a; }
+
+  @Override public FingerTree<V, A> tail() { return new Empty<>(measured()); }
+
+  @Override public FingerTree<V, A> init() { return new Empty<>(measured()); }
 
   @Override public FingerTree<V, A> append(final FingerTree<V, A> t) {
     return t.cons(a);
   }
 
-  @Override public P2<Integer, A> lookup(final F<V, Integer> o, final int i) {
-    return p(i, a);
+  @Override P3<FingerTree<V, A>, A, FingerTree<V, A>> split1(final F<V, Boolean> predicate, final V acc) {
+    final Empty<V, A> empty = new Empty<>(measured());
+    return p(empty, a, empty);
   }
 
-  /**
+  @Override public P2<Integer, A> lookup(final F<V, Integer> o, final int i) { return p(i, a); }
+
+    @Override
+    public int length() {
+        return 1;
+    }
+
+    /**
    * Returns the single element of this tree.
    *
    * @return the single element of this tree.
@@ -80,4 +102,13 @@ public final class Single<V, A> extends FingerTree<V, A> {
   public A value() {
     return a;
   }
+
+  public String toString() {
+    return Show.fingerTreeShow(Show.<V>anyShow(), Show.<A>anyShow()).showS(this);
+  }
+
+  public Stream<A> toStream() {
+    return Stream.single(a);
+  }
+
 }
